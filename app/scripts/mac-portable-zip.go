@@ -6,10 +6,10 @@ func run()error{
  output,err:=os.OpenFile(os.Args[2],os.O_WRONLY|os.O_CREATE|os.O_EXCL,0644);if err!=nil{return err};defer output.Close()
  writer:=zip.NewWriter(output)
  for _,entry:=range source.File{
-  if !strings.HasPrefix(entry.Name,"Multi-Browser.app/"){return fmt.Errorf("unexpected path: %s",entry.Name)}
+  if !strings.HasPrefix(entry.Name,"Browserland.app/"){return fmt.Errorf("unexpected path: %s",entry.Name)}
   clone:=*entry;clone.FileHeader.Name="Mac-Portable/"+entry.Name
   if entry.FileInfo().IsDir(){header:=clone.FileHeader;if _,err=writer.CreateHeader(&header);err!=nil{return err};continue}
-  if entry.Name=="Multi-Browser.app/Contents/MacOS/Multi-Browser"{
+  if entry.Name=="Browserland.app/Contents/MacOS/Browserland"{
    header:=clone.FileHeader;header.SetMode(0755);header.Method=zip.Deflate
    out,err:=writer.CreateHeader(&header);if err!=nil{return err};data,err:=os.Open(os.Args[3]);if err!=nil{return err};_,err=io.Copy(out,data);data.Close();if err!=nil{return err}
   }else if err=writer.Copy(&clone);err!=nil{return err}

@@ -5,23 +5,23 @@ ROOT=Path(__file__).resolve().parents[1]
 VERSION=json.loads((ROOT/'package.json').read_text())['version']
 parser=argparse.ArgumentParser();parser.add_argument('--diagnostic-no-sandbox',action='store_true');parser.add_argument('--reuse-test-cache',type=Path);args=parser.parse_args()
 RUN=ROOT/'test-results'/('social-'+uuid.uuid4().hex);RUN.mkdir(parents=True)
-exe=ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Portable.exe'
-mac=ROOT/'dist'/f'Multi-Browser-{VERSION}-Mac-Portable.zip'
+exe=ROOT/'dist'/f'Browserland-{VERSION}-Windows-Portable.exe'
+mac=ROOT/'dist'/f'Browserland-{VERSION}-Mac-Portable.zip'
 sources=[p for folder in ['src','ui'] for p in (ROOT/folder).rglob('*') if p.is_file() and not p.is_symlink()]+[ROOT/'package.json']
 with zipfile.ZipFile(exe) as archive:
  for file in sources:
   if archive.read('resources/app/'+file.relative_to(ROOT).as_posix())!=file.read_bytes():raise AssertionError('Windows source mismatch: '+str(file))
 with zipfile.ZipFile(mac) as archive:
  for arch in ['x64','arm64']:
-  prefix='Mac-Portable/Multi-Browser.app/Contents/Resources/runtimes/'+arch+'/Multi-Browser.app/Contents/Resources/app/'
+  prefix='Mac-Portable/Browserland.app/Contents/Resources/runtimes/'+arch+'/Browserland.app/Contents/Resources/app/'
   for file in sources:
    if archive.read(prefix+file.relative_to(ROOT).as_posix())!=file.read_bytes():raise AssertionError('Mac source mismatch: '+str(file))
 print('PASS: Delivered Windows and both Mac architectures contain the exact updated sources',flush=True)
-env=dict(os.environ,MULTIBROWSER_DATA=str(RUN/'data'),MULTIBROWSER_CACHE=str(RUN/'cache'))
+env=dict(os.environ,BROWSERLAND_DATA=str(RUN/'data'),BROWSERLAND_CACHE=str(RUN/'cache'))
 if args.reuse_test_cache:
  cache=args.reuse_test_cache.resolve()
  if (ROOT/'test-results').resolve() not in cache.parents or cache.name!='cache':raise ValueError('Only an isolated test cache may be reused')
- env['MULTIBROWSER_CACHE']=str(cache)
+ env['BROWSERLAND_CACHE']=str(cache)
 report=RUN/'launcher.json'
 with (RUN/'launcher.log').open('wb') as log:
  flags=['--no-sandbox','--disable-gpu'] if args.diagnostic_no_sandbox else []

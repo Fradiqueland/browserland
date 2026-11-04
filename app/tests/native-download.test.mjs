@@ -7,13 +7,13 @@ import {validateProfile} from '../src/core.mjs';
 import {until,closeHTTPServer} from '../src/operations.mjs';
 
 const root=resolve(import.meta.dirname,'..');
-const appRoot=resolve(process.env.MULTIBROWSER_TEST_APP_ROOT||process.argv.find(a=>a.startsWith('--app-root='))?.slice(11)||root);
-const dataRoot=process.env.MULTIBROWSER_DATA?resolve(process.env.MULTIBROWSER_DATA):mkdtempSync(join(root,'test-results','native-download-'));
+const appRoot=resolve((process.env.BROWSERLAND_TEST_APP_ROOT||process.env.MULTIBROWSER_TEST_APP_ROOT)||process.argv.find(a=>a.startsWith('--app-root='))?.slice(11)||root);
+const dataRoot=(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)?resolve((process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)):mkdtempSync(join(root,'test-results','native-download-'));
 mkdirSync(dataRoot,{recursive:true});
 const errors=[],events=[],checks=[];
 const manager=new NativeBrowsers({appRoot,dataRoot,error:error=>{errors.push(error.message);console.log('BROWSER ERROR '+error.message);}});
 const downloads=join(dataRoot,'downloads');mkdirSync(downloads);
-const payload='Multi-Browser local download fixture\n';
+const payload='Browserland local download fixture\n';
 const server=createServer((req,res)=>{
  if(req.url==='/redirect'){res.writeHead(302,{Location:'/file?redirected'});res.end();return;}
  if(req.url.startsWith('/file')){res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="fixture.txt"'});res.end(payload);return;}

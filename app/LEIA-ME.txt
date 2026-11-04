@@ -1,4 +1,14 @@
-Multi-Browser 0.21.6
+Browserland 0.22.0
+
+NOVO NOME: BROWSERLAND
+A aplicacao, janelas, atalhos e novos pacotes usam Browserland.
+No Windows, uma instalacao EXE existente e atualizada na mesma pasta para
+conservar perfis e sessoes. Feche a aplicacao e todas as janelas dos perfis
+antes de atualizar. As instalacoes novas usam Programs\Browserland.
+No Mac, conserve a pasta data junto da aplicacao ao substituir o pacote.
+A importacao de configuracoes e partilhas antigas continua suportada.
+Identificadores internos antigos sao conservados apenas onde necessarios
+para ler dados existentes e manter a compatibilidade de encriptacao.
 
 UM BOTAO ABRIR PARA OS NAVEGADORES COMPLETOS
 Chromium, Google Chrome e Microsoft Edge usam o mesmo botao Abrir.
@@ -12,7 +22,7 @@ O proxy configurado e mantido. Credenciais de proxy geridas pela aplicacao
 exigem o modo personalizado. Sem proxy, usa-se a rede normal do navegador.
 A navegacao normal utiliza as protecoes nativas do navegador; nao aplica
 idioma, fuso, localizacao, User-Agent, resolucao simulada ou restricoes de
-APIs do Multi-Browser. As configuracoes guardadas permanecem disponiveis
+APIs do Browserland. As configuracoes guardadas permanecem disponiveis
 no modo personalizado. O motor integrado Electron conserva esse modo.
 Para encerrar totalmente um navegador normal, use Sair no seu menu.
 
@@ -146,7 +156,7 @@ O pacote Windows x64 esta sujeito aos testes de execucao locais.
 Existem tambem candidatos macOS Intel (x64) e Apple Silicon (arm64),
 com Electron e Chromium incluidos. Esses candidatos ainda exigem assinatura,
 notarizacao e testes de execucao num Mac antes de serem considerados prontos.
-No Mac, data e .runtime ficam ao lado de Multi-Browser.app, fora do bundle.
+No Mac, data e .runtime ficam ao lado de Browserland.app, fora do bundle.
 Os atalhos principais usam Command; Control+Tab conserva a troca de separador.
 A descoberta de Chrome/Edge aceita /Applications e ~/Applications.
 No Windows, o caminho dos dados portateis existentes mantem-se.
@@ -170,7 +180,7 @@ O link Mais Produtos abre https://AntonioFradique.net no navegador do sistema.
 O idioma da interface nao altera o idioma nem as sessoes dos perfis.
 
 
-Abrir: Multi-Browser.cmd no projeto, ou Multi-Browser.exe na versao portatil.
+Abrir: Browserland.cmd no projeto, ou Browserland.exe na versao portatil.
 
 GRUPOS MULTIPLOS E IMPORTACAO/EXPORTACAO
 Cada perfil pode pertencer a varios grupos sem duplicar a identidade nem a
@@ -212,7 +222,7 @@ Cada perfil utiliza uma pasta exclusiva em data/native-profiles. Nunca e usado
 nem alterado o perfil pessoal do Chrome/Edge. O controlo utiliza pipes privados,
 sem porta de depuracao TCP. O sandbox e as protecoes nativas nao sao desativados.
 Para usar Chromium portable proprio, coloque chrome.exe e os restantes ficheiros
-em .runtime/chromium junto de Multi-Browser.exe (ou na pasta app do projeto).
+em .runtime/chromium junto de Browserland.exe (ou na pasta app do projeto).
 Este pacote inclui Electron e Chromium x64. A revisao Chromium e experimental
 (snapshot oficial 1726545, versao 158.0.8123.0), sem atualizacao automatica.
 As atualizacoes sao manuais; Chrome/Edge instalados conservam os seus
@@ -308,7 +318,7 @@ No modo integrado, a partilha continua limitada aos cookies.
 TESTES
 scripts/verify-desktop.ps1 executa testes de dominio, Chromium completo,
 extensao Manifest V3 real, integracoes HTTP e interface. O resultado final deve
-ser MULTIBROWSER_DESKTOP_OK. Cada processo tem limite e pasta de teste propria.
+ser BROWSERLAND_DESKTOP_OK. Cada processo tem limite e pasta de teste propria.
 scripts/verify-interface.ps1 executa apenas a verificacao da interface,
 com limite global e exigencia de encerramento normal.
 tests/native-load.test.mjs verifica dez motores simultaneos em perfis descartaveis.
@@ -329,16 +339,16 @@ servicos comerciais de conta/equipas ainda nao estao concluidos.
 
 
 PACOTE MAC UNICO (0.21.0)
-Multi-Browser-0.21.0-mac-unified-candidate.zip inclui Intel e Apple Silicon.
-Extraia tudo e abra Multi-Browser.app; a arquitetura e escolhida automaticamente.
+Browserland-0.21.0-mac-unified-candidate.zip inclui Intel e Apple Silicon.
+Extraia tudo e abra Browserland.app; a arquitetura e escolhida automaticamente.
 Requer macOS 13+. Electron e Chromium estao incluidos no bundle.
 A pasta data fica ao lado da app, fora do bundle, para ambas as arquiteturas.
 Candidato com verificacao estrutural; execucao real, assinatura e notarizacao pendentes.
 
 
 MAC: UM UNICO ZIP E UMA UNICA APP
-O ficheiro dist/Multi-Browser-0.21.0-mac.zip nao tem partes .z01.
-Ao extrair apresenta apenas Multi-Browser.app, com os dois motores incluidos.
+O ficheiro dist/Browserland-0.21.0-mac.zip nao tem partes .z01.
+Ao extrair apresenta apenas Browserland.app, com os dois motores incluidos.
 Intel ou Apple Silicon e escolhido automaticamente. Requer macOS 13+.
 As instrucoes e o manifesto estao dentro de Contents/Resources da app.
 Ao abrir, data e criada ao lado da app para conservar opcoes e sessoes.
@@ -346,8 +356,8 @@ O candidato continua sem assinatura/notarizacao e requer teste num Mac real.
 
 
 DISTRIBUICAO MAC EM DMG
-Ficheiro unico: dist/Multi-Browser-0.21.0-mac.dmg (Intel + Apple Silicon).
-Abra o DMG e copie Multi-Browser.app para uma pasta local com permissao de escrita.
+Ficheiro unico: dist/Browserland-0.21.0-mac.dmg (Intel + Apple Silicon).
+Abra o DMG e copie Browserland.app para uma pasta local com permissao de escrita.
 Para uso portatil escolha uma pasta no diretorio pessoal. Nao abra diretamente
 na imagem de disco, que e apenas de leitura. A pasta data fica ao lado da app copiada.
 Integridade UDIF/HFSX, conteudos, permissoes e ligacoes foram verificados.

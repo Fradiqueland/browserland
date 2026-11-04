@@ -1,3 +1,4 @@
+import {isBundleFormat} from './branding.mjs';
 import {existsSync,lstatSync,readdirSync,readFileSync,mkdirSync,writeFileSync,realpathSync} from 'node:fs';
 import {join,resolve,sep} from 'node:path';
 import {gzip,gunzip} from 'node:zlib';
@@ -30,10 +31,10 @@ export async function exportSiteStorage(directory,engine){
  const version=existsSync(join(base,'Last Version'))?readFileSync(join(base,'Last Version'),'utf8').trim():'';
  const packed=await compress(Buffer.from(JSON.stringify({files})));
  if(packed.length>MAX_COMPRESSED)throw Error('Armazenamento comprimido excede 16 MiB. Exporte este perfil sem dados dos sites.');
- return {format:'multi-browser-site-storage',version:1,engine,browserVersion:version,bytes:total,compression:'gzip',data:packed.toString('base64')};
+ return {format:'browserland-site-storage',version:1,engine,browserVersion:version,bytes:total,compression:'gzip',data:packed.toString('base64')};
 }
 export async function importSiteStorage(directory,snapshot,engine,browserVersion){
- if(!snapshot||snapshot.format!=='multi-browser-site-storage'||snapshot.version!==1||snapshot.compression!=='gzip'||snapshot.engine!==engine||typeof snapshot.data!=='string'||snapshot.data.length>Math.ceil(MAX_COMPRESSED/3)*4)throw Error('Armazenamento de sessao invalido ou motor diferente.');
+ if(!snapshot||!isBundleFormat(snapshot.format,'site-storage')||snapshot.version!==1||snapshot.compression!=='gzip'||snapshot.engine!==engine||typeof snapshot.data!=='string'||snapshot.data.length>Math.ceil(MAX_COMPRESSED/3)*4)throw Error('Armazenamento de sessao invalido ou motor diferente.');
  if(snapshot.browserVersion&&!/^\d+(?:\.\d+){1,3}$/.test(snapshot.browserVersion))throw Error('Versao de navegador invalida.');
  const installedMajor=Number(browserVersion.match(/(?:Chrome|Chromium|Edg)\/(\d+)/)?.[1]);
  if(snapshot.browserVersion&&(!installedMajor||installedMajor<Number(snapshot.browserVersion.split('.')[0])))throw Error('Atualize o navegador: a sessao foi criada numa versao mais recente.');

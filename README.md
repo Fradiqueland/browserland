@@ -1,116 +1,54 @@
-# Multi-Browser
+# Browserland
 
-Browser profile manager for Windows and macOS, created by Antonio Fradique. Available as a Windows installer and portable packages.
+Browser profile manager for Windows and macOS, created by Antonio Fradique.
 
-## Features
+Source repository: [Fradiqueland/browserland](https://github.com/Fradiqueland/browserland).
 
-- Separate browser profiles, cookies, local storage, IndexedDB and browsing sessions.
-- Bundled full Chromium browser with extensions, plus an embedded browser engine.
-- Proxy configuration, per-profile language, time zone, resolution and privacy controls.
-- Multiple groups per profile; CSV/JSON configuration import and export.
-- Encrypted session sharing, bookmarks, history, downloads and startup page restoration.
-- Eleven interface languages, with English selected by default.
-- Startup progress while validating/extracting the Windows runtime and opening the workspace.
-- Nine accessible social links in the author menu, with local SVG icons and fixed HTTPS destinations.
+## Browserland 0.22.0
 
-This is an independent application. Complete equivalence with every Logii or Chromium feature is not claimed.
+Browserland is the new name of the application. The interface, application icons, menus, exported files, launchers and current Windows/Mac packages use the new identity.
 
-## One Open button for full browsers (0.21.6)
+- One **Open** button for Chromium, Google Chrome and Microsoft Edge.
+- Separate persistent sessions for each profile, with normal browsing selected by default for full browsers.
+- An embedded browser and a customized mode for profile identity and API settings.
+- Groups, search, configuration import/export, extensions and eleven interface languages.
+- Explicit proxy routing; application-managed proxy credentials require customized mode.
+- Local storage, portable Mac operation and a Windows installer with Desktop/Start menu shortcuts.
 
-Chromium, Google Chrome and Microsoft Edge now use the same **Open** button. Normal browsing is the default for new full profiles, batch-created full profiles and legacy full profiles without a saved launch mode. It uses the selected browser without debugging or identity/API injection and stores a separate persistent session. The original customized profile data and settings are retained; mode selection lives in the profile editor.
+Normal browsing does not apply the application's identity/API overrides. The native browser manages its tabs, bookmarks, extensions, downloads and session data. Google acceptance is controlled by Google; successful login in a clean Chrome diagnostic does not establish acceptance in every engine or profile.
 
-Explicit proxy routing and its configured UDP restriction are preserved. Browser/system networking applies when no proxy is configured. Application-managed proxy credentials and managed session-transfer operations require customized mode. The embedded Electron engine remains in customized mode.
+## Updating and existing data
 
-The user confirmed Google login with the clean Chrome diagnostic launcher. The integrated behavior is implemented for all three full engines, but actual Google acceptance inside the final app still requires manual confirmation. The broader unit run passed 93 tests, excluding three junction-dependent tests blocked by environment permissions. See [behavior, updating and validation limits](app/docs/Normal-Browsing-0.21.6.md).
+Close the application and every profile browser before updating. The Windows EXE installer detects the previous registered EXE installation and reuses its directory, preserving `data`. New installations use `%LOCALAPPDATA%\Programs\Browserland`. The existing directory may retain its original name to avoid moving profile data. An older MSI installation must be removed through Windows Settings before using the EXE installer.
 
-Current packages: `Multi-Browser-0.21.6-Windows-Setup.exe` and `Multi-Browser-0.21.6-Mac-Portable.zip`.
+On macOS, keep the existing `data` directory beside `Browserland.app` when replacing the application package. Keep the complete portable bundle and its symbolic links. The package contains both Intel and Apple Silicon runtimes and requires macOS 13 or later.
 
-## Windows EXE installer (0.21.4 packaging baseline)
+Old configuration files and encrypted exports remain readable. New exports use `browserland-*` format identifiers. `BROWSERLAND_*` environment variables take precedence, with the old variable names accepted as compatibility aliases. Existing macOS workspaces retain the internal encryption identity required to access their prior Keychain data. Compatibility identifiers and immutable historical archive names are intentionally retained in migration code and historical reports.
 
-`Multi-Browser-0.21.4-Windows-Setup.exe` is a genuine NSIS installer containing the complete Electron application and full Chromium. It installs for the current user into `%LOCALAPPDATA%\Programs\Multi-Browser` by default, provides a directory chooser, and creates Desktop/Start menu shortcuts and an uninstall entry. No separate Node.js, Electron, Chrome or .NET runtime, and no Windows Installer service, is required by this EXE.
+Current packages are `Browserland-0.22.0-Windows-Setup.exe` and `Browserland-0.22.0-Mac-Portable.zip`. Distribution binaries and private profile data are excluded from this source repository.
 
-The installer is designed to keep the application's `data` directory on update and uninstall, removing only explicitly owned files and empty directories. If the earlier MSI edition is installed, remove it through Windows Settings before installing the EXE edition to avoid overlapping installer ownership. Portable data is not imported automatically.
-
-The 0.21.4 installer compiled successfully and all 388 extracted application/runtime files matched the build manifest. Live installation/update/uninstall tests remain pending. The package is unsigned. See [0.21.4 update and validation notes](app/docs/Download-Fix-0.21.4.md) for upgrade instructions, checksums and test coverage.
-
-Place the verified Windows portable release in `app/dist`, then run these build-only commands with Python 3.11 or newer on Windows:
-
-```sh
-python app/scripts/prepare-nsis-toolchain.py
-python app/scripts/build-electron-installer.py
-```
-
-The preparation script pins build-tool hashes and can build an x64 NSIS host compiler using installed Visual C++/Windows SDK if the official x86 build tool cannot run in a restricted environment. These development tools are not required by end users. Existing installer output is preserved rather than overwritten.
-
-### MSI alternative
-
-The single `Multi-Browser-0.21.3-Windows-Setup.msi` installs the complete application, Electron and Chromium into `%LOCALAPPDATA%\Programs\Multi-Browser` by default. It creates Desktop and Start menu shortcuts and a normal Windows uninstall entry. The folder can be changed in the installer. No separate Node.js, Electron, Chrome or .NET installation is required by the end user.
-
-Profiles and sessions remain in the installed folder's `data` directory. Updates use a Windows Installer rollback transaction; uninstall removes only installer-owned files and empty directories, preserving user data. Portable data is not imported automatically: close both copies before transferring the complete `data` folder to the installation directory.
-
-The MSI structure, shortcut destinations, and all 388 embedded file hashes were verified. A live install/repair/uninstall test could not complete in the restricted build environment because the Windows Installer service was unavailable (error 1601). Native installation and application launch still require a normal Windows host check.
-
-To build from the verified portable artifact, place it in `app/dist`, then run these development commands with Python 3 and .NET 6 or later:
-
-```sh
-python app/scripts/prepare-windows-installer.py
-python app/scripts/build-windows-installer.py
-python app/scripts/verify-windows-installer.py --verify-payload
-```
-
-The build tools are not installed or required on the end user's computer. The optional `--install-test` verifier creates a separate test product and redirects shortcuts into its isolated test directory.
-
-## Portable releases
-
-**Windows:** open the single portable EXE. It carries Electron and Chromium. No separate Node.js, Electron or Chrome installation is required. The first opening extracts a verified runtime cache; later openings validate and reuse it. Profile data remains in `data` beside the outer EXE.
-
-**Mac:** select the complete `Mac-Portable` folder in **Software portable → Choose folder**, then select `Multi-Browser.app` as the Mac program. The universal outer launcher chooses the bundled Intel or Apple Silicon runtime. macOS 13 or later is required. Keep the complete app structure and relative symbolic links.
-
-Extract the Mac ZIP on macOS with Archive Utility or `ditto -x -k archive.zip destination`. On Windows use `app/scripts/extract-macos-portable.ps1`; ordinary ZIP extractors may turn symbolic links into text files. The folder must be writable for portable persistence.
-
-The Mac 0.21.4 archive contains the download fix for both Intel and Apple Silicon. All 2,654 manifest entries and 38 symbolic links were verified, with native runtime bytes unchanged. **Opening it on a real Mac has not been tested. The delivery is unsigned and not notarized.** Source changes also invalidate any original application-level runtime signatures; retained signature files do not establish a valid signature for the modified app.
-
-Do not commit your `data` folder or share unencrypted profile exports containing private information. OS-protected credentials may not transfer between computers.
-
-## Source and development
-
-Version 0.21.4 fixes full Chromium closing when a download opens a temporary tab, including redirected attachment downloads. The browser now attaches to the tab container before preparing a separate paused page target, so download-only tabs no longer wait for a JavaScript renderer that may never exist. Real pages still receive profile controls before their first script. The regression test uses local files and does not access a personal Google Drive account.
-
-The `app` directory contains application sources, packaging tools and tests. End-user release runtimes are bundled in the delivery; development runtimes and generated packages are intentionally absent from Git.
-
-Core tests require Node.js 24 or later:
+## Development and verification
 
 ```sh
 cd app
 npm test
 ```
 
-On Windows, `app/scripts/start.ps1` prepares the pinned Electron runtime; `prepare-chromium.ps1` prepares full Chromium. `verify-desktop.ps1` exercises the real desktop app with isolated test data. Test and build scripts must be run from a local checkout with their required development tools available.
+Development requires Node.js 24 or later. Windows preparation scripts pin Electron and Chromium runtimes; users of the packaged app do not need separate runtime installations. `scripts/verify-desktop.ps1` exercises the application with isolated test data.
 
 Packaging entry points:
 
-- `build.ps1`: Windows folder distribution.
-- `build-windows-single-file.py`: single Windows EXE, using prepared runtimes, Python/Pillow and the Go toolchain configured in the script.
-- `prepare-macos.mjs`, `build-macos.py`, `build-macos-unified.py`, `build-macos-single.py`, `build-macos-portable.py`: Mac runtime preparation and successive bundle formats.
-- `refresh-macos-artwork.py`: incremental update from a verified prior Mac portable package; it deliberately requires that base artifact.
-- `verify-windows-single-file.py`, `verify-startup-progress.py`: execution, persistence, integrity and startup checks for the delivered EXE.
+- `scripts/build-electron-installer.py --base-setup <verified-prior-installer>` builds the Windows NSIS installer.
+- `scripts/verify-electron-payload.py` checks every packaged file and compares shipped sources with the workspace.
+- `scripts/update-portable-sources.py --mac <verified-prior-mac-archive>` updates the portable Mac package while preserving native runtime bytes and symbolic links.
+- The remaining Windows portable/MSI and Mac bundle builders are development alternatives and may require locally prepared toolchains.
 
-The 0.21.3 social menu was checked in bundled Chromium with a local IPC fixture across eleven languages, two themes and two layouts. Electron execution in the current AppContainer was blocked by Windows ACL constraints; a normal-host Electron rerun remains pending. The new Mac ZIP retains the same native runtime binaries and all 38 symbolic links.
+The final `npm test` run passed 99 tests; three Windows junction-dependent tests could not create their fixtures because the sandbox rejected the required operation (`EPERM`). The three portable-package rebrand tests also passed. All 391 Windows payload files and 2,660 Mac manifest entries were verified, including 38 Mac symbolic links. Native installer execution and real macOS/Keychain execution remain unverified here. Detailed checks and package hashes are recorded in [the release notes](app/docs/Browserland-0.22.0.md).
 
-Some packaging and compatibility tests use locally prepared toolchains, prior verified delivery archives, or the separately supplied Windows & Mac Software Builder. They are not self-contained fresh-checkout tests. Generated verification reports and development caches are excluded from this public backup.
-
-## Optional REA tooling
-
-The `rea` submodule pins the upstream [morluto/rea](https://github.com/morluto/rea) analysis tools. It is **not required to run Multi-Browser**. Initialize it only when needed:
-
-```sh
-git submodule update --init --recursive
-```
-
-Upstream nested submodule test fixtures can contain filenames unsupported by Windows. Use a filesystem supporting those names for a complete recursive checkout. No proprietary reference application or extracted reference files are included.
+The optional `rea` submodule pins [morluto/rea](https://github.com/morluto/rea). It is a development tool and is not required to run Browserland.
 
 ## License and credits
 
-The application package currently declares `UNLICENSED`; this public repository does not grant an open-source license. Electron, Chromium, REA and other third-party components retain their respective licenses and notices. Runtime distributions must retain those notices.
+The application declares `UNLICENSED`; a public source backup does not grant an open-source license. Electron, Chromium, REA and other third-party components retain their own licenses and notices.
 
-Created by **Antonio Fradique** — [More products](https://AntonioFradique.net).
+Created by **Antonio Fradique** - [More products](https://AntonioFradique.net).

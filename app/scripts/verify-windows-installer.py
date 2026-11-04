@@ -16,16 +16,16 @@ def main():
  proof=json.loads((ROOT/'reference'/f'windows-installer-{VERSION}.json').read_text())
  source=Path(proof['file'])
  assert digest(source)==proof['sha256'],'Installer checksum mismatch'
- with zipfile.ZipFile(ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Portable.exe') as portable:manifest=json.loads(portable.read('single-file-manifest.json'))
+ with zipfile.ZipFile(ROOT/'dist'/f'Browserland-{VERSION}-Windows-Portable.exe') as portable:manifest=json.loads(portable.read('single-file-manifest.json'))
  expected={item['Path']:item for item in manifest['Files']};checks=[]
  def check(label,value):
   assert value,label;checks.append(label);print('PASS '+label,flush=True)
  with Database(source) as db:
-  properties=dict(db.query('SELECT `Property`,`Value` FROM `Property`'));check('Correct product and version',properties.get('ProductName')=='Multi-Browser' and properties.get('ProductVersion')==VERSION)
+  properties=dict(db.query('SELECT `Property`,`Value` FROM `Property`'));check('Correct product and version',properties.get('ProductName')=='Browserland' and properties.get('ProductVersion')==VERSION)
   check('Current-user installation without administrator privileges',properties.get('ALLUSERS','')=='' and db.summary(15)&8!=0)
   check('Native x64 Windows Installer package',db.summary(7).startswith('x64;'))
   dirs={row[0]:(row[1],row[2].split('|')[-1]) for row in db.query('SELECT `Directory`,`Directory_Parent`,`DefaultDir` FROM `Directory`')}
-  check('Default location is the current-user Programs folder',dirs['INSTALLFOLDER']==('UserProgramsFolder','Multi-Browser') and dirs['UserProgramsFolder']==('LocalAppDataFolder','Programs'))
+  check('Default location is the current-user Programs folder',dirs['INSTALLFOLDER']==('UserProgramsFolder','Browserland') and dirs['UserProgramsFolder']==('LocalAppDataFolder','Programs'))
   components={row[0]:row[1] for row in db.query('SELECT `Component`,`Directory_` FROM `Component`')}
   def relative(directory):
    if directory=='INSTALLFOLDER':return ''
@@ -37,7 +37,7 @@ def main():
   check('No profile or session data is part of the installation payload',not any(path.split('/')[0].lower()=='data' for path in installed))
   media=db.query('SELECT `Cabinet` FROM `Media`');check('All cabinet files are embedded in one MSI',bool(media) and all(row[0].startswith('#') for row in media))
   shortcuts=db.query('SELECT `Shortcut`,`Directory_`,`Target`,`WkDir`,`Icon_` FROM `Shortcut`')
-  check('Desktop and Start menu shortcuts point directly to the installed program',len(shortcuts)==2 and {row[1] for row in shortcuts}=={'DesktopFolder','MultiBrowserMenu'} and all(row[2].startswith('[#') and file_ids.get(row[2][2:-1])=='Multi-Browser.exe' and row[3]=='INSTALLFOLDER' and row[4]=='ApplicationIcon' for row in shortcuts))
+  check('Desktop and Start menu shortcuts point directly to the installed program',len(shortcuts)==2 and {row[1] for row in shortcuts}=={'DesktopFolder','BrowserlandMenu'} and all(row[2].startswith('[#') and file_ids.get(row[2][2:-1])=='Browserland.exe' and row[3]=='INSTALLFOLDER' and row[4]=='ApplicationIcon' for row in shortcuts))
   removals=db.query('SELECT `FileName`,`InstallMode` FROM `RemoveFile`');check('Uninstall removes only owned files and empty directories',all(row[0]=='' and row[1]=='2' for row in removals))
   actions=dict(db.query('SELECT `Action`,`Sequence` FROM `InstallExecuteSequence`'));check('Updates run inside the Windows Installer rollback transaction',int(actions['InstallInitialize'])<int(actions['RemoveExistingProducts'])<int(actions['InstallFinalize']))
   events=db.query("SELECT `Dialog_`,`Control_`,`Argument` FROM `ControlEvent` WHERE `Event`='NewDialog'")
@@ -57,7 +57,7 @@ def main():
   test_prefix=r'Software\AntonioFradique\Multi-Browser\InstallerTests'+'\\'+test_id
   with Database(test_msi,write=True) as db:
    db.execute("UPDATE `Property` SET `Value`='"+product+"' WHERE `Property`='ProductCode'")
-   db.execute("UPDATE `Property` SET `Value`='Multi-Browser isolated installer test' WHERE `Property`='ProductName'")
+   db.execute("UPDATE `Property` SET `Value`='Browserland isolated installer test' WHERE `Property`='ProductName'")
    db.execute("UPDATE `Property` SET `Value`='"+upgrade+"' WHERE `Property`='UpgradeCode'")
    db.execute('DELETE FROM `Upgrade`')
    for cid,old in db.query('SELECT `Component`,`ComponentId` FROM `Component`'):
@@ -98,15 +98,15 @@ def main():
   else:
    try:
     check('Actual isolated installation writes every bundled file correctly',all(digest(target/path)==item['SHA256'] for path,item in expected.items()))
-    check('Actual installation creates Desktop and Start menu shortcuts', (target/'TestDesktop/Multi-Browser.lnk').is_file() and (target/'TestStartMenu/Multi-Browser/Multi-Browser.lnk').is_file())
+    check('Actual installation creates Desktop and Start menu shortcuts', (target/'TestDesktop/Browserland.lnk').is_file() and (target/'TestStartMenu/Browserland/Browserland.lnk').is_file())
     private=target/'data/profiles/fixture';private.mkdir(parents=True);marker=private/'session.bin';marker.write_bytes(b'controlled session persistence fixture')
     preserve=marker.read_bytes();changed=target/'resources/app/ui/social-links.css';changed.write_text('controlled repair fixture')
     code=msiexec(['/i',str(test_msi),'REINSTALL=ALL','REINSTALLMODE=amus'],'repair');check('Repair restores application files and preserves session data',code in (0,3010) and digest(changed)==expected['resources/app/ui/social-links.css']['SHA256'] and marker.read_bytes()==preserve)
-    code=msiexec(['/x',product],'uninstall');check('Actual uninstall removes the program and preserves sessions',code in (0,3010) and not (target/'Multi-Browser.exe').exists() and marker.read_bytes()==preserve)
-    check('Actual uninstall removes its generated shortcuts',not (target/'TestDesktop/Multi-Browser.lnk').exists() and not (target/'TestStartMenu/Multi-Browser/Multi-Browser.lnk').exists())
+    code=msiexec(['/x',product],'uninstall');check('Actual uninstall removes the program and preserves sessions',code in (0,3010) and not (target/'Browserland.exe').exists() and marker.read_bytes()==preserve)
+    check('Actual uninstall removes its generated shortcuts',not (target/'TestDesktop/Browserland.lnk').exists() and not (target/'TestStartMenu/Browserland/Browserland.lnk').exists())
     result['installationTest']='installed, repaired and uninstalled successfully with data retained'
    finally:
-    if (target/'Multi-Browser.exe').exists():msiexec(['/x',product],'cleanup')
+    if (target/'Browserland.exe').exists():msiexec(['/x',product],'cleanup')
  result['checks']=checks
  (ROOT/'reference'/f'windows-installer-verification-{VERSION}.json').write_text(json.dumps(result,indent=2))
  if result['installationTest']=='not requested' and proof.get('installationTest'):result['installationTest']=proof['installationTest']

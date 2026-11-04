@@ -1,14 +1,14 @@
 {
-  "name": "multi-browser",
-  "productName": "Multi-Browser",
-  "version": "0.21.6",
+  "name": "browserland",
+  "productName": "Browserland",
+  "version": "0.22.0",
   "private": true,
   "description": "Gestor local com motores Chromium completos e perfis isolados",
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
     "start": "powershell -NoProfile -File scripts/start.ps1",
-    "test": "node --test tests/core.test.mjs tests/groups.test.mjs tests/localization.test.mjs tests/portable-extensions.test.mjs tests/platform.test.mjs tests/profile-import.test.mjs tests/profile-tasks.test.mjs tests/native-path.test.mjs tests/author-social.test.mjs tests/standard-browser.test.mjs tests/plain-browser.test.mjs",
+    "test": "node --test tests/core.test.mjs tests/branding.test.mjs tests/groups.test.mjs tests/localization.test.mjs tests/portable-extensions.test.mjs tests/platform.test.mjs tests/profile-import.test.mjs tests/profile-tasks.test.mjs tests/native-path.test.mjs tests/author-social.test.mjs tests/standard-browser.test.mjs tests/plain-browser.test.mjs",
     "build": "powershell -NoProfile -File scripts/build.ps1"
   },
   "engines": {

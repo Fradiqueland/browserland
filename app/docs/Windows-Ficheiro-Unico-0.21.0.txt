@@ -1,4 +1,6 @@
-Multi-Browser 0.21.0 — Windows, ficheiro único
+Historical release record. Product branding is Browserland; original archive filenames, hashes and compatibility identifiers below refer to the release named in this document. For current installation and behavior, see Browserland-0.22.0.md.
+
+Browserland 0.21.0 — Windows, ficheiro único
 ==============================================
 
 Abra Multi-Browser-0.21.0-Windows-Portable.exe com dois cliques.

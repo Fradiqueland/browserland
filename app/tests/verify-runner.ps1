@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference='Stop'
+$ErrorActionPreference='Stop'
 $projectRoot=Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $nodeExe=Join-Path $projectRoot 'rea\.cache\rea-toolchain\node-v24.22.1-win-x64\node.exe'
 if(-not (Test-Path -LiteralPath $nodeExe)){$nodeExe=(Get-Command node.exe -ErrorAction Stop).Source}
@@ -8,7 +8,7 @@ $fixtureWorkspace=Join-Path $projectRoot ('app\test-results\runner-'+[guid]::New
 New-Item -ItemType Directory -Path $fixtureWorkspace -Force | Out-Null
 $appRoot=$fixtureWorkspace
 . (Join-Path $projectRoot 'app\scripts\desktop-check.ps1')
-$previousData=$env:MULTIBROWSER_DATA
+$previousData=$env:BROWSERLAND_DATA
 $passed=0;$limited=0
 try {
  $report=Invoke-DesktopCheck ('"'+$fixture+'" success') 'result.json' 'Normal success fixture' 8
@@ -23,4 +23,4 @@ try {
   Write-Host "PASS: $mode rejected correctly.";$passed++
  }
  Write-Host "RUNNER_TESTS_OK: $passed passed, $limited limited; PowerShell $($PSVersionTable.PSVersion)."
-} finally {$env:MULTIBROWSER_DATA=$previousData}
+} finally {$env:BROWSERLAND_DATA=$previousData}

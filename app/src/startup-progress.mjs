@@ -1,13 +1,14 @@
+import {environmentValue} from './branding.mjs';
 import {BrowserWindow} from 'electron';
 import {join} from 'node:path';
 export async function startupProgress({root,isTest=false}){
- const external=process.platform==='win32'&&process.env.MULTIBROWSER_SINGLE_FILE;
+ const external=process.platform==='win32'&&environmentValue('SINGLE_FILE');
  let splash=null;
  const update=(percent,message)=>{
   if(splash&&!splash.isDestroyed()){splash.setProgressBar(percent/100);splash.webContents.send('startup-progress',{percent,message})}
  };
  if(!isTest&&!external){
-  splash=new BrowserWindow({width:510,height:260,resizable:false,minimizable:false,maximizable:false,closable:false,show:false,autoHideMenuBar:true,title:'Starting Multi-Browser',backgroundColor:'#121626',icon:join(root,'ui/assets/app-icon.png'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,preload:join(root,'src/startup-preload.cjs')}});
+  splash=new BrowserWindow({width:510,height:260,resizable:false,minimizable:false,maximizable:false,closable:false,show:false,autoHideMenuBar:true,title:'Starting Browserland',backgroundColor:'#121626',icon:join(root,'ui/assets/app-icon.png'),webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,preload:join(root,'src/startup-preload.cjs')}});
   splash.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   splash.webContents.on('will-navigate',event=>event.preventDefault());
   splash.webContents.on('will-redirect',event=>event.preventDefault());
@@ -24,8 +25,8 @@ export async function startupProgress({root,isTest=false}){
     if(error){if(splash&&!splash.isDestroyed())splash.destroy();reject(error);return}
     update(100,'Ready');if(!isTest&&!manager.isDestroyed())manager.show();
     if(splash&&!splash.isDestroyed()){splash.setProgressBar(-1);splash.destroy()}
-    const token=process.env.MULTIBROWSER_STARTUP_TOKEN;
-    if(!completed&&/^[0-9a-f]{32}$/.test(token||''))process.stdout.write('MULTIBROWSER_STARTUP_READY='+token+'\n');
+    const token=environmentValue('STARTUP_TOKEN');
+    if(!completed&&/^[0-9a-f]{32}$/.test(token||''))process.stdout.write((process.env.BROWSERLAND_STARTUP_TOKEN?'BROWSERLAND_STARTUP_READY=':'MULTIBROWSER_STARTUP_READY=')+token+'\n');
     completed=true;resolve();
    }
    function ready(){if(painted&&loaded)finish()}

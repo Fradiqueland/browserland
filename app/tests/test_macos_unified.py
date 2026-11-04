@@ -3,7 +3,7 @@ from pathlib import Path
 SPEC = importlib.util.spec_from_file_location('unified', Path(__file__).resolve().parents[1] / 'scripts/build-macos-unified.py')
 m = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(m)
-BASH = Path(os.environ.get('MULTIBROWSER_TEST_BASH', 'C:/Users/smark/AppData/Local/hermes/git/bin/bash.exe'))
+BASH = Path(os.environ.get('BROWSERLAND_TEST_BASH', os.environ.get('MULTIBROWSER_TEST_BASH', 'C:/Users/smark/AppData/Local/hermes/git/bin/bash.exe' if os.name == 'nt' else '/bin/sh')))
 
 def shellpath(path):
     text = str(path.resolve()).replace('\\', '/')
@@ -16,8 +16,8 @@ class UnifiedLauncherTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory(prefix='mac-unified-')
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name) / 'Portable $HOME & spaces'
-        self.contents = self.root / 'Multi-Browser.app/Contents'
-        self.launcher = self.contents / 'MacOS/Multi-Browser'
+        self.contents = self.root / 'Browserland.app/Contents'
+        self.launcher = self.contents / 'MacOS/Browserland'
         self.launcher.parent.mkdir(parents=True)
         self.commands = {}
         for name, body in {
@@ -34,20 +34,23 @@ class UnifiedLauncherTests(unittest.TestCase):
         self.executables = {}
         for arch in m.ARCHES:
             directory = self.contents / 'Resources/runtimes' / arch
-            electron = directory / 'Multi-Browser.app/Contents/MacOS/Electron'
+            electron = directory / 'Browserland.app/Contents/MacOS/Electron'
             chrome = directory / '.runtime/chromium/Chromium.app/Contents/MacOS/Chromium'
             for file in (electron, chrome):
                 file.parent.mkdir(parents=True, exist_ok=True)
                 file.write_text('#!/bin/sh\nexit 0\n', newline='\n')
                 file.chmod(0o755)
-            electron.write_text('#!/bin/sh\nprintf "RUNTIME=' + arch + '\\nDATA=%s\\n" "$MULTIBROWSER_DATA"\nprintf "ARG=%s\\n" "$@"\nexit "${TEST_EXIT:-0}"\n', newline='\n')
+            electron.write_text('#!/bin/sh\nprintf "RUNTIME=' + arch + '\\nDATA=%s\\n" "$BROWSERLAND_DATA"\nprintf "ARG=%s\\n" "$@"\nexit "${TEST_EXIT:-0}"\n', newline='\n')
             self.executables[arch] = electron
 
-    def run_launcher(self, machine='x86_64', silicon='0', override=None, args=(), exit_code='0'):
+    def run_launcher(self, machine='x86_64', silicon='0', override=None, args=(), exit_code='0', legacy_override=None):
         env = dict(os.environ, TEST_MACHINE=machine, TEST_SILICON=silicon, TEST_EXIT=exit_code, MSYS_NO_PATHCONV='1')
+        env.pop('BROWSERLAND_DATA', None)
         env.pop('MULTIBROWSER_DATA', None)
+        if legacy_override is not None:
+            env['MULTIBROWSER_DATA'] = legacy_override
         if override is not None:
-            env['MULTIBROWSER_DATA'] = override
+            env['BROWSERLAND_DATA'] = override
         return subprocess.run([str(BASH), shellpath(self.launcher), *args], cwd=self.tmp.name, env=env, capture_output=True, text=True, timeout=15)
 
     def test_intel_native_and_external_data(self):
@@ -85,9 +88,39 @@ class UnifiedLauncherTests(unittest.TestCase):
         for machine in ('x86_64', 'arm64'):
             r = self.run_launcher(machine, '0')
             paths.append(next(line for line in r.stdout.splitlines() if line.startswith('DATA=')))
-            r = self.run_launcher(machine, '0', override='/Users/test/Shared Profiles')
-            self.assertIn('DATA=/Users/test/Shared Profiles\n', r.stdout)
+            r = self.run_launcher(machine, '0', override=shellpath(self.root / 'Shared Profiles'))
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn('DATA=' + shellpath(self.root / 'Shared Profiles') + '\n', r.stdout)
         self.assertEqual(paths[0], paths[1])
+
+    def test_legacy_override_is_accepted_without_losing_existing_data(self):
+        data = self.root / 'Existing Sessions'
+        data.mkdir()
+        sentinel = data / 'session-sentinel'
+        sentinel.write_text('existing-session')
+        r = self.run_launcher(legacy_override=shellpath(data))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('DATA=' + shellpath(data) + '\n', r.stdout)
+        self.assertEqual(sentinel.read_text(), 'existing-session')
+
+    def test_new_override_takes_precedence(self):
+        selected = self.root / 'Current Profiles'
+        legacy = self.root / 'Legacy Profiles'
+        r = self.run_launcher(override=shellpath(selected), legacy_override=shellpath(legacy))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn('DATA=' + shellpath(selected) + '\n', r.stdout)
+        self.assertTrue(selected.is_dir())
+        self.assertFalse(legacy.exists())
+
+    def test_relative_override_and_file_override_are_refused(self):
+        conflict = self.root / 'conflicting-file'
+        conflict.write_text('keep')
+        for override in ('relative-path', shellpath(conflict)):
+            with self.subTest(override=override):
+                r = self.run_launcher(override=override)
+                self.assertEqual(r.returncode, 1)
+                self.assertNotIn('RUNTIME=', r.stdout)
+        self.assertEqual(conflict.read_text(), 'keep')
 
     def test_unknown_architecture_stops(self):
         r = self.run_launcher('ppc64', '0')
@@ -114,7 +147,7 @@ class UnifiedLauncherTests(unittest.TestCase):
         self.assertNotIn('no-sandbox', script)
         self.assertNotIn('xattr', script)
         info = m.unified_plist('0.21.0', '13.0')
-        self.assertEqual(info['CFBundleExecutable'], 'Multi-Browser')
+        self.assertEqual(info['CFBundleExecutable'], 'Browserland')
         self.assertEqual(info['CFBundlePackageType'], 'APPL')
         result = subprocess.run([str(BASH), '-n'], input=script, text=True, capture_output=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)

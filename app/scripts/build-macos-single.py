@@ -7,21 +7,21 @@ base = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 
 def target_name(name, prefix):
-    app = prefix + '/Multi-Browser.app/'
+    app = prefix + '/Browserland.app/'
     if name.startswith(app):
-        return 'Multi-Browser.app/' + name[len(app):]
+        return 'Browserland.app/' + name[len(app):]
     if name in (prefix + '/READ-ME-FIRST.txt', prefix + '/package-verification.json'):
-        return 'Multi-Browser.app/Contents/Resources/' + name.rsplit('/', 1)[1]
+        return 'Browserland.app/Contents/Resources/' + name.rsplit('/', 1)[1]
     raise ValueError('Unexpected input entry: ' + name)
 
 def build():
     version = json.loads((ROOT / 'package.json').read_text())['version']
-    prefix = f'Multi-Browser-{version}-mac-unified-candidate'
+    prefix = f'Browserland-{version}-mac-unified-candidate'
     source = ROOT / 'dist' / (prefix + '.zip')
     proof = json.loads((ROOT / 'test-results' / f'mac-unified-{version}-result.json').read_text())
     if not proof.get('ok') or base.digest(source) != proof['sha256']:
         raise ValueError('Unified input does not match verified checksum')
-    destination = ROOT / 'dist' / f'Multi-Browser-{version}-mac.zip'
+    destination = ROOT / 'dist' / f'Browserland-{version}-mac.zip'
     if destination.exists():
         raise FileExistsError('Existing package preserved: ' + str(destination))
     with base.checked_archive(source) as incoming:
@@ -35,18 +35,18 @@ def build():
         with base.checked_archive(destination) as output:
             if output.testzip():
                 raise ValueError('ZIP integrity failure')
-            if {name.split('/')[0] for name in output.namelist()} != {'Multi-Browser.app'}:
+            if {name.split('/')[0] for name in output.namelist()} != {'Browserland.app'}:
                 raise ValueError('Package must contain one visible application only')
             for info, target in mapped:
                 if output.read(target) != incoming.read(info) or output.getinfo(target).external_attr != info.external_attr:
                     raise ValueError('Content/permission mismatch: ' + target)
-            info = plistlib.loads(output.read('Multi-Browser.app/Contents/Info.plist'))
-            executable = 'Multi-Browser.app/Contents/MacOS/' + info['CFBundleExecutable']
+            info = plistlib.loads(output.read('Browserland.app/Contents/Info.plist'))
+            executable = 'Browserland.app/Contents/MacOS/' + info['CFBundleExecutable']
             if not (output.getinfo(executable).external_attr >> 16) & 0o111:
                 raise ValueError('Application launcher not executable')
             for arch in ('x64', 'arm64'):
-                root = 'Multi-Browser.app/Contents/Resources/runtimes/' + arch + '/'
-                base.executable_arch(output, root + 'Multi-Browser.app/Contents/MacOS/Electron', arch)
+                root = 'Browserland.app/Contents/Resources/runtimes/' + arch + '/'
+                base.executable_arch(output, root + 'Browserland.app/Contents/MacOS/Electron', arch)
                 base.executable_arch(output, root + '.runtime/chromium/Chromium.app/Contents/MacOS/Chromium', arch)
             links = sum(stat.S_ISLNK(i.external_attr >> 16) for i in output.infolist())
     report = dict(ok=True, version=version, path=str(destination), bytes=destination.stat().st_size,

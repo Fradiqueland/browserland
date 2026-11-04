@@ -19,7 +19,7 @@ func fixture(t *testing.T) *bundle {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	m := manifest{Version: "fixture"}
-	for _, name := range []string{"Multi-Browser.exe", ".runtime/chromium/chrome.exe", "resources/app/package.json"} {
+	for _, name := range []string{"Browserland.exe", ".runtime/chromium/chrome.exe", "resources/app/package.json"} {
 		data := []byte("fixture for " + name)
 		w, e := zw.Create(name)
 		if e != nil {
@@ -116,7 +116,7 @@ func TestManifestPinnedToLauncher(t *testing.T) {
 }
 func TestPortableDataStableAcrossRenaming(t *testing.T) {
 	base := t.TempDir()
-	a, _ := dataDirectory(filepath.Join(base, "Multi-Browser.exe"), "")
+	a, _ := dataDirectory(filepath.Join(base, "Browserland.exe"), "")
 	b, _ := dataDirectory(filepath.Join(base, "Renamed.exe"), "")
 	if a != b || a != filepath.Join(base, "data") {
 		t.Fatal("renaming changed portable data")
@@ -139,7 +139,7 @@ func TestNodeEnvironmentCannotChangeApplicationMode(t *testing.T) {
 			t.Fatal("unsafe inherited variable:", name)
 		}
 	}
-	if !strings.Contains(joined, "MULTIBROWSER_DATA=C:\\Portable\\data") {
+	if !strings.Contains(joined, "BROWSERLAND_DATA=C:\\Portable\\data") {
 		t.Fatal("data not forwarded")
 	}
 }
@@ -182,5 +182,27 @@ func TestConcurrentFirstOpeningsShareOneRuntime(t *testing.T) {
 	entries, e := os.ReadDir(base)
 	if e != nil || len(entries) != 1 {
 		t.Fatal("leftover extraction directories", entries, e)
+	}
+}
+
+func TestCompatibleEnvironmentOverrides(t *testing.T) {
+	t.Setenv("MULTIBROWSER_DATA", "legacy")
+	t.Setenv("BROWSERLAND_DATA", "")
+	if compatibleEnv("DATA") != "legacy" {
+		t.Fatal("legacy data override ignored")
+	}
+	t.Setenv("BROWSERLAND_DATA", "current")
+	if compatibleEnv("DATA") != "current" {
+		t.Fatal("new data override does not take precedence")
+	}
+	for _, key := range []string{"BROWSERLAND_STARTUP_TOKEN", "MULTIBROWSER_STARTUP_TOKEN", "BROWSERLAND_SINGLE_FILE", "MULTIBROWSER_SINGLE_FILE"} {
+		t.Setenv(key, "stale")
+	}
+	env := strings.Join(environment("resolved-data", "resolved-exe"), "\n")
+	if strings.Contains(env, "MULTIBROWSER_DATA=") || strings.Contains(env, "STARTUP_TOKEN=") || strings.Contains(env, "MULTIBROWSER_SINGLE_FILE=") || strings.Contains(env, "stale") {
+		t.Fatal("stale launch authority forwarded")
+	}
+	if !strings.Contains(env, "BROWSERLAND_DATA=resolved-data") || !strings.Contains(env, "BROWSERLAND_SINGLE_FILE=resolved-exe") {
+		t.Fatal("resolved launch identity missing")
 	}
 }

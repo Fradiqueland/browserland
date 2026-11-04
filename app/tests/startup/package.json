@@ -1,1 +1,1 @@
-{"name":"multi-browser-startup-check","type":"module","main":"start.mjs"}
+{"name":"browserland-startup-check","type":"module","main":"start.mjs"}

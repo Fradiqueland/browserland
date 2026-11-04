@@ -37,7 +37,7 @@ test('Grupos importados atualizam descricoes e conservam grupos nao incluidos',(
  const s=store();mergeGroups(s.state,[{name:'Pessoal',description:'Antiga'},{name:'Fora',description:'Conservar'}]);mergeGroups(s.state,[{name:'Pessoal',description:'Nova'},{name:'Vazio',description:''}]);assert.equal(s.state.groupDetails.Pessoal.description,'Nova');assert.equal(s.state.groupDetails.Fora.description,'Conservar');assert.deepEqual(groupRecords(s.state,['Vazio']),[{name:'Vazio',description:''}]);
 });
 test('Dados de grupos e versoes invalidas sao recusados antes de importar',()=>{
- assert.throws(()=>validateProfile({name:'A',groups:'a,b'}));assert.throws(()=>validateGroupRecords([{name:'A'},{name:'A'}]));assert.throws(()=>validateGroupRecords([{name:'A',description:123}]));assert.throws(()=>csvImport('name,fileFormat,recordType\nA,multi-browser-csv/99,profile'));assert.throws(()=>csvImport('name,fileFormat,recordType,groups\nA,multi-browser-csv/2,profile,not-json'));assert.throws(()=>importProfileConfiguration({...configured('A'),useCount:-1}));
+ assert.throws(()=>validateProfile({name:'A',groups:'a,b'}));assert.throws(()=>validateGroupRecords([{name:'A'},{name:'A'}]));assert.throws(()=>validateGroupRecords([{name:'A',description:123}]));assert.throws(()=>csvImport('name,fileFormat,recordType\nA,browserland-csv/99,profile'));assert.throws(()=>csvImport('name,fileFormat,recordType,groups\nA,browserland-csv/2,profile,not-json'));assert.throws(()=>importProfileConfiguration({...configured('A'),useCount:-1}));
 });
 
 // A clean source checkout does not contain generated test output folders.

@@ -4,7 +4,8 @@ $appRoot=[IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $runtimeRoot=Join-Path $appRoot '.runtime'
 $destination=Join-Path $runtimeRoot 'chromium'
 $executable=Join-Path $destination 'chrome.exe'
-$manifest=Join-Path $destination 'multi-browser-runtime.json'
+$manifest=Join-Path $destination 'browserland-runtime.json'
+if(-not(Test-Path -LiteralPath $manifest)){$legacyManifest=Join-Path $destination 'multi-browser-runtime.json';if(Test-Path -LiteralPath $legacyManifest){$manifest=$legacyManifest}}
 if(Test-Path -LiteralPath $destination){
  if((Test-Path -LiteralPath $executable) -and (Test-Path -LiteralPath $manifest)){
   $existing=Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json
@@ -51,7 +52,7 @@ $license=Read-OfficialText 'https://chromium.googlesource.com/chromium/src/+/mai
 $version=(Get-Item -LiteralPath (Join-Path $source 'chrome.exe')).VersionInfo.ProductVersion
 if($version -notmatch '\d+\.\d+\.\d+\.\d+'){throw 'Versao Chromium indisponivel.'}
 $details=[ordered]@{source=$url;revision=$Revision;version=$version;archiveSha256=$sha256;executableSha256=(Get-FileHash -LiteralPath (Join-Path $source 'chrome.exe') -Algorithm SHA256).Hash;downloadedAt=(Get-Date).ToUniversalTime().ToString('o');automaticUpdates=$false}
-$details | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $source 'multi-browser-runtime.json') -Encoding UTF8
+$details | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $source 'browserland-runtime.json') -Encoding UTF8
 # Resolve both targets immediately before moving; both must stay under this runtime root.
 $allowed=[IO.Path]::GetFullPath($runtimeRoot)+[IO.Path]::DirectorySeparatorChar
 foreach($target in @($source,$destination)){if(-not([IO.Path]::GetFullPath($target).StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase))){throw 'Destino Chromium fora do projeto.'}}

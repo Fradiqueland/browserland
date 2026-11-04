@@ -1,7 +1,7 @@
 const {mkdirSync,writeFileSync}=require('node:fs');
 const {join}=require('node:path');
-const root=process.env.MULTIBROWSER_DATA;
-if(!root)throw Error('Isolated MULTIBROWSER_DATA required');
+const root=(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA);
+if(!root)throw Error('Isolated BROWSERLAND_DATA required');
 mkdirSync(root,{recursive:true});
 const mode=process.argv[2];
 if(mode==='timeout'){setTimeout(()=>process.exit(0),15000);return;}

@@ -1,4 +1,6 @@
-# Multi-Browser 0.21.4
+Historical release record. Product branding is Browserland; original archive filenames, hashes and compatibility identifiers below refer to the release named in this document. For current installation and behavior, see Browserland-0.22.0.md.
+
+# Browserland 0.21.4
 
 Full Chromium could close when an attachment download opened a new tab. The
 profile initializer waited for `Runtime.getIsolateId` on a target without a

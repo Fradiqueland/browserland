@@ -23,7 +23,7 @@ func isReparse(info os.FileInfo) bool {
 }
 func lockRuntime(base, hash string) (func(), error) {
 	runtime.LockOSThread()
-	name := fmt.Sprintf("Local\\MultiBrowserSingleFile-%x", sha256.Sum256([]byte(base+"|"+hash)))
+	name := fmt.Sprintf("Local\\BrowserlandSingleFile-%x", sha256.Sum256([]byte(base+"|"+hash)))
 	handle, _, e := kernel32.NewProc("CreateMutexW").Call(0, 0, uintptr(unsafe.Pointer(wide(name))))
 	if handle == 0 {
 		runtime.UnlockOSThread()
@@ -42,7 +42,7 @@ func lockRuntime(base, hash string) (func(), error) {
 	}, nil
 }
 func showError(message string) {
-	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(wide(message))), uintptr(unsafe.Pointer(wide("Multi-Browser"))), 0x10)
+	user32.NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(wide(message))), uintptr(unsafe.Pointer(wide("Browserland"))), 0x10)
 }
 
 type winPoint struct{ X, Y int32 }
@@ -107,7 +107,7 @@ func showProgress() *startupUI {
 			value, _, _ := user32.NewProc("DefWindowProcW").Call(hwnd, uintptr(msg), wparam, lparam)
 			return value
 		})
-		className := wide("MultiBrowserStartupWindow")
+		className := wide("BrowserlandStartupWindow")
 		class := windowClass{Procedure: procedure, Instance: module, Background: brush, ClassName: className}
 		class.Size = uint32(unsafe.Sizeof(class))
 		atom, _, _ := user32.NewProc("RegisterClassExW").Call(uintptr(unsafe.Pointer(&class)))
@@ -118,7 +118,7 @@ func showProgress() *startupUI {
 		}
 		defer user32.NewProc("UnregisterClassW").Call(uintptr(unsafe.Pointer(className)), module)
 		defer gdi.NewProc("DeleteObject").Call(brush)
-		window, _, _ := user32.NewProc("CreateWindowExW").Call(0x80, uintptr(unsafe.Pointer(className)), uintptr(unsafe.Pointer(wide("Starting Multi-Browser"))), 0x10C00000, (sx-520)/2, (sy-235)/2, 520, 235, 0, 0, module, 0)
+		window, _, _ := user32.NewProc("CreateWindowExW").Call(0x80, uintptr(unsafe.Pointer(className)), uintptr(unsafe.Pointer(wide("Starting Browserland"))), 0x10C00000, (sx-520)/2, (sy-235)/2, 520, 235, 0, 0, module, 0)
 		if window == 0 {
 			<-ui.stop
 			return
@@ -132,7 +132,7 @@ func showProgress() *startupUI {
 		if appIcon != 0 {
 			user32.NewProc("SendMessageW").Call(icon, 0x172, 1, appIcon)
 		}
-		title := create("STATIC", "Multi-Browser", 0x50000000, 90, 22, 370, 28)
+		title := create("STATIC", "Browserland", 0x50000000, 90, 22, 370, 28)
 		subtitle := create("STATIC", "Your browsing workspace", 0x50000000, 90, 53, 370, 22)
 		label := create("STATIC", ui.stage, 0x50000000, 24, 100, 415, 22)
 		percent := create("STATIC", "0%", 0x50000002, 445, 100, 45, 22)

@@ -1,4 +1,4 @@
-﻿function Stop-DesktopCheckProcess([System.Diagnostics.Process]$Process) {
+function Stop-DesktopCheckProcess([System.Diagnostics.Process]$Process) {
  if($Process.HasExited){return}
  # Operate only on the process object retained by this verifier's Start-Process.
  $treeKill=$Process.GetType().GetMethod('Kill',[type[]]@([bool]))
@@ -12,7 +12,7 @@
 function Invoke-DesktopCheck([string]$LaunchArguments,[string]$ReportRelativePath,[string]$Label,[int]$TimeoutSeconds=150) {
  $run=Join-Path $appRoot ('test-results\run-'+[guid]::NewGuid().ToString('N'))
  New-Item -ItemType Directory -Path $run -Force | Out-Null
- $env:MULTIBROWSER_DATA=$run
+ $env:BROWSERLAND_DATA=$run
  $stdout=Join-Path $run 'stdout.log';$stderr=Join-Path $run 'stderr.log';$progress=Join-Path $run 'progress.log'
  $testProcess=$null
  try {

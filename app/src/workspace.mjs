@@ -1,3 +1,4 @@
+import {isBundleFormat} from './branding.mjs';
 import {profileGroups,setProfileGroups,validateGroupRecords,groupNames} from './groups.mjs';
 import {validateProfile,importProfileConfiguration,text} from './core.mjs';
 const csvSecrets=new WeakMap();
@@ -41,8 +42,8 @@ export function parseCSV(source){
  return rows.map((values,index)=>{if(values.length!==headers.length)throw Error('CSV: número de colunas incorreto na linha '+(index+2));return Object.fromEntries(headers.map((h,i)=>[h,values[i]]));});
 }
 function bool(value){return ['true','1','yes','sim','on'].includes(String(value).toLowerCase());}
-const CSV_FORMAT='multi-browser-csv/2';
-function ownCSV(row){return row.fileFormat===CSV_FORMAT;}
+const CSV_FORMAT='browserland-csv/2';
+function ownCSV(row){return isBundleFormat(row.fileFormat,'csv/2');}
 function decodeCSV(row){return ownCSV(row)?Object.fromEntries(Object.entries(row).map(([key,value])=>[key,/^'(?:'|[\s]*[=+@-])/.test(value)?value.slice(1):value])):row;}
 export function csvProfile(row){
  const own=ownCSV(row);row=decodeCSV(row);
@@ -63,7 +64,7 @@ export function csvText(profiles,groups=[]){
 export function csvImport(source){
  const profiles=[],groups=[];
  for(const raw of parseCSV(source)){
-  if(raw.fileFormat&&raw.fileFormat!==CSV_FORMAT)throw Error('Versão CSV não suportada.');
+  if(raw.fileFormat&&!ownCSV(raw))throw Error('Versão CSV não suportada.');
   if(ownCSV(raw)){const row=decodeCSV(raw);if(row.recordType==='group'){groups.push({name:row.name,description:row.description});continue;}if(row.recordType!=='profile')throw Error('Tipo de registo CSV inválido.');}
   profiles.push(csvProfile(raw));
  }

@@ -1,3 +1,4 @@
+import {environmentValue} from './branding.mjs';
 import {runAuthorSocialSmoke} from './author-social-smoke.mjs';
 import {capturePage} from './capture-page.mjs';
 import {portableDirectory} from './platform.mjs';
@@ -14,7 +15,7 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
  let proxyServer,bundledChromium;
  const originals={save:dialog.showSaveDialog,open:dialog.showOpenDialog,message:dialog.showMessageBox};
  const results=[];const check=(name,ok)=>{assert.ok(ok,name);results.push({name,ok:true});trace('PASS: '+name);};
- const server=createServer((_req,res)=>{if(_req.url==='/portable-worker.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end("let blocked=false;try{new OffscreenCanvas(1,1).getContext('2d').getImageData(0,0,1,1)}catch{blocked=true}const first={blocked,language:navigator.language,zone:Intl.DateTimeFormat().resolvedOptions().timeZone,node:typeof require,ipc:typeof self.desktop};self.addEventListener('install',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.put('/offline-probe',new Response('portable-cache-ok'))).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.match('/offline-probe')).then(r=>r.text()).then(cache=>e.ports[0].postMessage({...first,cache}))));");return;}if(_req.url==='/download'){res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="teste-download.txt"','Content-Length':4096});res.end(Buffer.alloc(4096,65));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><title>Teste de isolamento</title><h1>Multi-Browser local</h1><a href="/next" target="_blank">Abrir separador</a>');});
+ const server=createServer((_req,res)=>{if(_req.url==='/portable-worker.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end("let blocked=false;try{new OffscreenCanvas(1,1).getContext('2d').getImageData(0,0,1,1)}catch{blocked=true}const first={blocked,language:navigator.language,zone:Intl.DateTimeFormat().resolvedOptions().timeZone,node:typeof require,ipc:typeof self.desktop};self.addEventListener('install',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.put('/offline-probe',new Response('portable-cache-ok'))).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.match('/offline-probe')).then(r=>r.text()).then(cache=>e.ports[0].postMessage({...first,cache}))));");return;}if(_req.url==='/download'){res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="teste-download.txt"','Content-Length':4096});res.end(Buffer.alloc(4096,65));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><title>Teste de isolamento</title><h1>Browserland local</h1><a href="/next" target="_blank">Abrir separador</a>');});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/';
  async function loaded(wc){if(wc.getURL()&&!wc.isLoading())return;await Promise.race([once(wc,'did-finish-load'),new Promise((_,reject)=>setTimeout(()=>reject(Error('Pagina nao carregou')),15000))]);}
  try{
@@ -61,11 +62,11 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
  let authenticatedRequests=0;
  proxyServer=createServer((req,res)=>{
   const expected='Basic '+Buffer.from('teste:password-local').toString('base64');
-  if(req.headers['proxy-authorization']!==expected){res.writeHead(407,{'Proxy-Authenticate':'Basic realm="MultiBrowserTest"'});res.end();return;}
+  if(req.headers['proxy-authorization']!==expected){res.writeHead(407,{'Proxy-Authenticate':'Basic realm="BrowserlandTest"'});res.end();return;}
   authenticatedRequests++;res.writeHead(200,{'Content-Type':'text/html'});res.end('<!doctype html><title>Proxy local validado</title><h1>Proxy autenticado</h1>');
  });
  await new Promise(resolve=>proxyServer.listen(0,'127.0.0.1',resolve));
- const proxyProfile=await actions.save({name:'Proxy local',proxy:'http://127.0.0.1:'+proxyServer.address().port,proxyUser:'teste',proxyPassword:'password-local',startURL:'http://multi-browser-test.invalid/'});
+ const proxyProfile=await actions.save({name:'Proxy local',proxy:'http://127.0.0.1:'+proxyServer.address().port,proxyUser:'teste',proxyPassword:'password-local',startURL:'http://browserland-test.invalid/'});
  check('Credenciais de proxy nao ficam em texto simples',!readFileSync(join(dataRoot,'workspace.json'),'utf8').includes('password-local'));
  const proxyBrowser=await bounded(openProfile(proxyProfile.id),'abrir proxy autenticado',30000);
  const proxyContents=proxyBrowser.tabs[0].view.webContents;await loaded(proxyContents);
@@ -140,7 +141,7 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
   check('Menu '+section+' abre a secao correta',await manager.webContents.executeJavaScript("!document.querySelector('#"+section+"').classList.contains('hidden')"));
  }
  trace('Verificar Chromium incluido sem depender do Chrome ou Edge instalados');
- if(process.env.MULTIBROWSER_PORTABLE_TEST==='1')check('Pacote funciona com descoberta de navegadores instalados desativada',nativeBrowsers.available().length===1&&nativeBrowsers.available()[0].id==='chromium');
+ if(environmentValue('PORTABLE_TEST')==='1')check('Pacote funciona com descoberta de navegadores instalados desativada',nativeBrowsers.available().length===1&&nativeBrowsers.available()[0].id==='chromium');
  const bundledProfile=store.upsert({name:'Chromium incluido',engine:'chromium',locale:'pt-PT',timezone:'Asia/Tokyo',privacy:{canvas:true},startupPages:[url]});
  const nativeRecord=await nativeBrowsers.open(bundledProfile,{headless:true}),nativeExit=nativeRecord.exited;
  const expectedExecutable=resolve(app.isPackaged?portableDirectory():root,'.runtime','chromium',...(process.platform==='darwin'?['Chromium.app','Contents','MacOS','Chromium']:['chrome.exe']));
@@ -165,7 +166,7 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
  const nativeCanvas=await nativeRecord.cdp.send('Runtime.evaluate',{expression:"document.createElement('canvas').toDataURL().startsWith('data:')",returnByValue:true},newNativeSession);
  check('Novo separador nativo conserva canvas com restricoes no perfil',nativeCanvas.result.value===true);
  await nativeRecord.cdp.send('Page.navigate',{url:url+'native-newtab'},newNativeSession);
- await until(async()=>{const r=await nativeRecord.cdp.send('Runtime.evaluate',{expression:"location.pathname==='/native-newtab'&&document.querySelector('h1')?.textContent==='Multi-Browser local'",returnByValue:true},newNativeSession);return r.result.value;},'site no separador criado pelo navegador',15000);
+ await until(async()=>{const r=await nativeRecord.cdp.send('Runtime.evaluate',{expression:"location.pathname==='/native-newtab'&&document.querySelector('h1')?.textContent==='Browserland local'",returnByValue:true},newNativeSession);return r.result.value;},'site no separador criado pelo navegador',15000);
  const nativeIdentity=await nativeRecord.cdp.send('Runtime.evaluate',{expression:"(()=>{let blocked=false;try{document.createElement('canvas').toDataURL()}catch{blocked=true}return blocked&&navigator.language==='pt-PT'&&Intl.DateTimeFormat().resolvedOptions().timeZone==='Asia/Tokyo'})()",returnByValue:true},newNativeSession);
  check('Site aberto do novo separador nativo aplica identidade e privacidade',nativeIdentity.result.value===true);await nativeRecord.cdp.send('Target.closeTarget',{targetId:newNativeTab});
 
@@ -204,7 +205,7 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
  const typedAddress='localhost:'+server.address().port+'/typed-address';
  await portBrowser.window.webContents.executeJavaScript("window.desktop.request('navigate',{url:"+JSON.stringify(typedAddress)+"})");
  const typedContents=portBrowser.tabs[0].view.webContents;
- check('Barra navega realmente para localhost com porta sem exigir esquema',typedContents.getURL()==='http://'+typedAddress&&await typedContents.executeJavaScript("document.querySelector('h1')?.textContent==='Multi-Browser local'"));
+ check('Barra navega realmente para localhost com porta sem exigir esquema',typedContents.getURL()==='http://'+typedAddress&&await typedContents.executeJavaScript("document.querySelector('h1')?.textContent==='Browserland local'"));
  check('Navegacao local conserva isolamento sem Node e IPC',await typedContents.executeJavaScript("typeof require==='undefined'&&typeof window.desktop==='undefined'"));
  await actions.stop({id:portProfile.id});
  await manager.webContents.executeJavaScript("document.querySelector('#new-profile').click();");

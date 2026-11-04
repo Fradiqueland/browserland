@@ -1,5 +1,5 @@
 param(
- [string]$ArchivePath = (Join-Path $PSScriptRoot 'Multi-Browser-0.21.0-Mac-Portable.zip'),
+ [string]$ArchivePath = (Join-Path $PSScriptRoot 'Browserland-0.22.0-Mac-Portable.zip'),
  [string]$Destination = (Join-Path $PSScriptRoot 'Mac-Portable')
 )
 $ErrorActionPreference='Stop'
@@ -61,4 +61,4 @@ foreach($entry in $metadata.entries){
  if((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $entry.sha256){throw "Ficheiro nao corresponde ao manifesto: $($entry.path)"}
 }
 Write-Output "MAC_PORTABLE_EXTRACT_OK: $Destination"
-Write-Output 'Escolha esta pasta em Software portable e selecione Multi-Browser.app em Programa para Mac.'
+Write-Output 'Escolha esta pasta em Software portable e selecione Browserland.app em Programa para Mac.'

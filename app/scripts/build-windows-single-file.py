@@ -13,9 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / '.cache' / 'windows-single-file'
 LAUNCHER = ROOT / 'scripts' / 'windows-single-file'
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
-PORTABLE = ROOT / 'dist' / f'Multi-Browser-{VERSION}-win-x64'
-OUTPUT = ROOT / 'dist' / f'Multi-Browser-{VERSION}-Windows-Portable.exe'
+PORTABLE = ROOT / 'dist' / f'Browserland-{VERSION}-win-x64'
+OUTPUT = ROOT / 'dist' / f'Browserland-{VERSION}-Windows-Portable.exe'
 GO_ROOT = ROOT / '.cache' / 'dmg-toolchain' / 'go'
+GO_CONFIG = ROOT / '.cache' / 'portable-go.json'
+if GO_CONFIG.is_file():
+    prepared_go = Path(json.loads(GO_CONFIG.read_text(encoding='utf-8'))['goRoot'])
+    if (prepared_go / 'bin' / 'go.exe').is_file():
+        GO_ROOT = prepared_go
 
 def sha(path):
     h = hashlib.sha256()
@@ -60,14 +65,15 @@ def write_resources(electron):
     original = pe_resources(electron)
     manifest = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-<assemblyIdentity version="0.21.0.0" processorArchitecture="amd64" name="AntonioFradique.MultiBrowser.Portable" type="win32"/>
-<description>Multi-Browser Portable</description>
+<assemblyIdentity version="0.21.0.0" processorArchitecture="amd64" name="AntonioFradique.Browserland.Portable" type="win32"/>
+<description>Browserland Portable</description>
 <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3"><security><requestedPrivileges><requestedExecutionLevel level="asInvoker" uiAccess="false"/></requestedPrivileges></security></trustInfo>
 <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1"><application><supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/></application></compatibility>
 <application xmlns="urn:schemas-microsoft-com:asm.v3"><windowsSettings><longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware><dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware></windowsSettings></application>
 </assembly>'''
     manifest = manifest.replace(b'0.21.0.0',(VERSION+'.0').encode())
     tree = {k: original[k] for k in (3, 14) if k in original}
+    tree[16] = {1: {1033: app_icons.version_resource('Browserland.exe')}}
     tree[24] = {1: {1033: manifest}}
     raw = bytearray()
     leaves = []
@@ -104,7 +110,10 @@ def write_resources(electron):
 def prepare_portable():
     electron = ROOT / '.runtime' / 'electron'
     chrome = ROOT / '.runtime' / 'chromium'
-    info = json.loads((chrome/'multi-browser-runtime.json').read_text())
+    manifest = chrome / 'browserland-runtime.json'
+    if not manifest.is_file():
+        manifest = chrome / 'multi-browser-runtime.json'  # Existing verified runtime.
+    info = json.loads(manifest.read_text())
     if sha(chrome/'chrome.exe').lower() != info['executableSha256'].lower():
         raise ValueError('Bundled Chromium does not match its preparation manifest')
     if not (electron/'electron.exe').is_file():
@@ -113,7 +122,7 @@ def prepare_portable():
         # Existing deliveries and user data are never overwritten.
         raise FileExistsError(f'Portable output already exists; preserve it before rebuilding: {PORTABLE}')
     shutil.copytree(electron, PORTABLE)
-    (PORTABLE/'electron.exe').rename(PORTABLE/'Multi-Browser.exe')
+    (PORTABLE/'electron.exe').rename(PORTABLE/'Browserland.exe')
     shutil.copytree(chrome, PORTABLE/'.runtime'/'chromium')
     target = PORTABLE/'resources'/'app'
     target.mkdir()
@@ -121,12 +130,14 @@ def prepare_portable():
         shutil.copytree(ROOT/name, target/name)
     shutil.copy2(ROOT/'package.json', target/'package.json')
     shutil.copy2(ROOT/'LEIA-ME.txt', PORTABLE/'LEIA-ME.txt')
-    app_icons.apply_windows(PORTABLE/'Multi-Browser.exe')
+    app_icons.apply_windows(PORTABLE/'Browserland.exe')
     print('Portable folder restored from existing verified runtimes.', flush=True)
 
 def main():
     if OUTPUT.exists():
         raise FileExistsError(f'Existing EXE preserved: {OUTPUT}')
+    if not (GO_ROOT/'bin/go.exe').is_file():
+        raise FileNotFoundError('Prepare the pinned build toolchain with scripts/prepare-portable-go.py')
     CACHE.mkdir(parents=True, exist_ok=True)
     prepare_portable()
     files = []
@@ -147,7 +158,7 @@ def main():
     manifest_hash = hashlib.sha256(manifest).hexdigest()
     env = dict(os.environ, GOROOT=str(GO_ROOT), GOCACHE=str(ROOT/'.cache'/'dmg-toolchain'/'go-build'),
                GOPATH=str(ROOT/'.cache'/'dmg-toolchain'/'gopath'),GOTOOLCHAIN='local',CGO_ENABLED='0',GOOS='windows',GOARCH='amd64')
-    write_resources(PORTABLE/'Multi-Browser.exe')
+    write_resources(PORTABLE/'Browserland.exe')
     stub = CACHE/'launcher.exe'
     flags = f'-s -w -H=windowsgui -X main.payloadSHA={payload_hash} -X main.manifestSHA={manifest_hash}'
     subprocess.run([str(GO_ROOT/'bin'/'go.exe'),'build','-trimpath','-ldflags',flags,'-o',str(stub),'.'],cwd=LAUNCHER,env=env,check=True)

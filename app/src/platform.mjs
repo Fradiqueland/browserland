@@ -14,12 +14,13 @@ export function applicationDataDirectory({appRoot,packaged=false,platform=proces
  const p=paths(platform);
  return p.resolve(override||p.join(packaged?portableDirectory({platform,execPath}):appRoot,'data'));
 }
-export function engineCandidates(appRoot,{platform=process.platform,execPath=process.execPath,env=process.env,home=homedir()}={}){
+export function engineCandidates(appRoot,{platform=process.platform,execPath=process.execPath,env=process.env,home=homedir(),exists=existsSync}={}){
  const p=paths(platform),roots=[appRoot,portableDirectory({platform,execPath})];
  const candidates=[];
  if(platform==='win32'||platform==='darwin')for(const root of roots){
   const runtime=p.join(root,'.runtime','chromium');
-  candidates.push({id:'chromium',name:'Chromium portátil',path:p.join(runtime,...(platform==='darwin'?['Chromium.app','Contents','MacOS','Chromium']:['chrome.exe'])),manifestPath:p.join(runtime,'multi-browser-runtime.json')});
+  const branded=p.join(runtime,'browserland-runtime.json'),legacy=p.join(runtime,'multi-browser-runtime.json');
+  candidates.push({id:'chromium',name:'Chromium portátil',path:p.join(runtime,...(platform==='darwin'?['Chromium.app','Contents','MacOS','Chromium']:['chrome.exe'])),manifestPath:exists(branded)||!exists(legacy)?branded:legacy});
  }
  if(platform==='win32'){
   for(const root of [env.PROGRAMFILES||'C:/Program Files',env.LOCALAPPDATA||'C:/Users/Default/AppData/Local'])candidates.push({id:'chrome',name:'Google Chrome',path:p.join(root,'Google','Chrome','Application','chrome.exe')});

@@ -1,3 +1,4 @@
+import {isBundleFormat} from './branding.mjs';
 import {DEFAULT_LANGUAGE,normalizeLanguage} from './languages.mjs';
 import {groupNames,profileGroups,ensureProfileGroups,validateGroupRecords} from './groups.mjs';
 import {randomUUID, randomBytes, scryptSync, createCipheriv, createDecipheriv} from 'node:crypto';
@@ -87,16 +88,21 @@ export function encryptBundle(value,password){
  if(typeof password!=='string'||password.length<12)throw Error('Utilize uma palavra-passe com pelo menos 12 caracteres.');
  const salt=randomBytes(16),iv=randomBytes(12),key=scryptSync(password,salt,32),cipher=createCipheriv('aes-256-gcm',key,iv);
  const bytes=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]);
- return JSON.stringify({format:'multi-browser-encrypted',version:1,salt:salt.toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:bytes.toString('base64')});
+ return JSON.stringify({format:'browserland-encrypted',version:1,salt:salt.toString('base64'),iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:bytes.toString('base64')});
 }
 export function decryptBundle(raw,password){
  if(Buffer.byteLength(raw)>30*1024*1024)throw Error('Ficheiro demasiado grande.');
- const b=JSON.parse(raw);if(b.format!=='multi-browser-encrypted'||b.version!==1)throw Error('Formato de partilha inválido.');
+ const b=JSON.parse(raw);if(!isBundleFormat(b.format,'encrypted')||b.version!==1)throw Error('Formato de partilha inválido.');
  const salt=Buffer.from(b.salt,'base64'),iv=Buffer.from(b.iv,'base64'),tag=Buffer.from(b.tag,'base64');
  if(salt.length!==16||iv.length!==12||tag.length!==16)throw Error('Ficheiro inválido.');
  try{const decipher=createDecipheriv('aes-256-gcm',scryptSync(password,salt,32),iv);decipher.setAuthTag(tag);return JSON.parse(Buffer.concat([decipher.update(Buffer.from(b.data,'base64')),decipher.final()]).toString('utf8'));}catch{throw Error('Palavra-passe incorreta ou ficheiro alterado.');}
 }
-export function configurationBundle(profiles,groups=[]){return {format:'multi-browser-profiles',version:2,groups:validateGroupRecords(groups),profiles:profiles.map(({id,proxySecret,extensions,lastTabs,running,busy,hasProxyPassword,...p})=>({...p,groups:profileGroups(p),group:profileGroups(p)[0]||''}))};}
+export function configurationBundle(profiles,groups=[]){return {format:'browserland-profiles',version:2,groups:validateGroupRecords(groups),profiles:profiles.map(({id,proxySecret,extensions,lastTabs,running,busy,hasProxyPassword,...p})=>({...p,groups:profileGroups(p),group:profileGroups(p)[0]||''}))};}
+export function configurationInputs(bundle){
+ if(isBundleFormat(bundle?.format,'profiles')&&[1,2].includes(bundle.version)&&Array.isArray(bundle.profiles))return bundle.profiles;
+ if(isBundleFormat(bundle?.format,'session')&&[1,2].includes(bundle.version)&&Array.isArray(bundle.cookies))return [bundle.profile];
+ throw Error('Ficheiro de importação inválido.');
+}
 export function importProfileConfiguration(input){
  const p=validateProfile({...input,id:undefined,latitude:input.geolocation?.latitude??input.latitude,longitude:input.geolocation?.longitude??input.longitude});
  if(input.pinned!==undefined){if(typeof input.pinned!=='boolean')throw Error('Fixação inválida.');p.pinned=input.pinned;}

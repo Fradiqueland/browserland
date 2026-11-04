@@ -26,9 +26,9 @@ def extract(archive,destination):
 
 def build():
  version=json.loads((ROOT/'package.json').read_text())['version']
- output=ROOT/'dist'/f'Multi-Browser-{version}-mac.dmg'
+ output=ROOT/'dist'/f'Browserland-{version}-mac.dmg'
  if output.exists():raise FileExistsError('Existing DMG preserved: '+str(output))
- source=ROOT/'dist'/f'Multi-Browser-{version}-mac.zip'
+ source=ROOT/'dist'/f'Browserland-{version}-mac.zip'
  proof=json.loads((ROOT/'reference'/f'mac-single-{version}.json').read_text())
  if not proof.get('ok') or digest(source)!=proof['sha256']:raise ValueError('Input ZIP checksum mismatch')
  pins=json.loads((SCRIPTS/'mac-dmg-toolchain.json').read_text())
@@ -41,14 +41,14 @@ def build():
  download('https://proxy.golang.org/'+module+'/@v/'+pins['moduleVersion']+'.zip',modulezip,pins['moduleZipSha256'])
  writer=CACHE/'module'/(module+'@'+pins['moduleVersion'])
  if not writer.exists():extract(modulezip,CACHE/'module')
- for src,dest in [('mac-dmg-zip.go','zip_adapter.go'),('mac-dmg-create.go','create_zip.go'),('mac-dmg-zip_test.go','zip_adapter_test.go'),('mac-dmg-main.go','cmd/multibrowser-dmg/main.go')]:
+ for src,dest in [('mac-dmg-zip.go','zip_adapter.go'),('mac-dmg-create.go','create_zip.go'),('mac-dmg-zip_test.go','zip_adapter_test.go'),('mac-dmg-main.go','cmd/browserland-dmg/main.go')]:
   target=writer/dest;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(SCRIPTS/src,target)
  env=dict(os.environ,GOROOT=str(CACHE/'go'),GOPATH=str(CACHE/'gopath'),GOCACHE=str(CACHE/'gocache'),
           GOMODCACHE=str(CACHE/'gomodcache'),GOTOOLCHAIN='local',CGO_ENABLED='0',
           GOPROXY='https://proxy.golang.org',GOSUMDB='sum.golang.org')
- exe=CACHE/'multibrowser-dmg.exe';go=CACHE/'go/bin/go.exe'
+ exe=CACHE/'browserland-dmg.exe';go=CACHE/'go/bin/go.exe'
  subprocess.run([go,'test','./...'],cwd=writer,env=env,check=True)
- subprocess.run([go,'build','-o',exe,'./cmd/multibrowser-dmg'],cwd=writer,env=env,check=True)
+ subprocess.run([go,'build','-o',exe,'./cmd/browserland-dmg'],cwd=writer,env=env,check=True)
  subprocess.run([exe,source,output,CACHE],check=True)
  report=ROOT/'reference'/f'mac-dmg-{version}.json'
  subprocess.run([sys.executable,SCRIPTS/'verify-macos-dmg.py',output,source,report],check=True)

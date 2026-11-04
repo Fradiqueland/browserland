@@ -1,15 +1,17 @@
-Multi-Browser 0.21.3 - Windows EXE installer
+Historical release record. Product branding is Browserland; original archive filenames, hashes and compatibility identifiers below refer to the release named in this document. For current installation and behavior, see Browserland-0.22.0.md.
+
+Browserland 0.21.3 - Windows EXE installer
 
 Multi-Browser-0.21.3-Windows-Setup.exe is a genuine NSIS installer for the
 Electron application, with the full Chromium browser bundled as well.
 It does not wrap or require the separately provided MSI installer.
 
 Installation
-1. Close Multi-Browser and all of its browser profiles.
+1. Close Browserland and all of its browser profiles.
 2. If the earlier MSI edition is installed, uninstall that edition in Windows
    Settings > Apps first. Its data folder is designed to remain in place.
 3. Open Setup.exe and choose the destination. The default is
-   %LOCALAPPDATA%\Programs\Multi-Browser for the current Windows user.
+   %LOCALAPPDATA%\Programs\Browserland for the current Windows user.
 4. Complete the wizard. Desktop and Start menu shortcuts open the installed
    Multi-Browser.exe directly. A Windows uninstall entry is also created.
 

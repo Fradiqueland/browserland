@@ -5,7 +5,7 @@ import {createServer} from 'node:http';
 import {NativeBrowsers} from '../src/native-browser.mjs';
 import {validateProfile,cookieForImport} from '../src/core.mjs';
 import {bounded,closeHTTPServer,until} from '../src/operations.mjs';
-const appRoot=resolve(import.meta.dirname,'..'),dataRoot=process.env.MULTIBROWSER_DATA?resolve(process.env.MULTIBROWSER_DATA):mkdtempSync(join(appRoot,'test-results','native-suite-'));
+const appRoot=resolve(import.meta.dirname,'..'),dataRoot=(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)?resolve((process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)):mkdtempSync(join(appRoot,'test-results','native-suite-'));
 mkdirSync(dataRoot,{recursive:true});
 const checks=[],errors=[];
 const pass=(name,ok)=>{assert.ok(ok,name);checks.push({name,ok:true});console.log('PASS Chromium: '+name);};

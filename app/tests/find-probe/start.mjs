@@ -4,7 +4,7 @@ import {resolve,join} from 'node:path';
 import {createServer} from 'node:http';
 import {randomUUID} from 'node:crypto';
 const root=resolve(import.meta.dirname,'../..'),directory=join(root,'test-results','find-probe-'+randomUUID());
-mkdirSync(directory,{recursive:true});process.env.MULTIBROWSER_DATA=directory;
+mkdirSync(directory,{recursive:true});process.env.BROWSERLAND_DATA=directory;
 const {quitApplication}=await import('../../src/main.mjs');
 app.whenReady().then(()=>setTimeout(async()=>{
  let server;const result={events:[]};

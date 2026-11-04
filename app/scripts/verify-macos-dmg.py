@@ -155,12 +155,12 @@ def validate(image,archive,report_path):
    assert files-expected=={'Applications','READ-ME-FIRST.txt'},'Unexpected files'
    assert hfs.read(hfs.by_path['Applications'])==b'/Applications'
    assert stat.S_ISLNK(hfs.by_path['Applications']['mode'])
-   assert b'Copy Multi-Browser.app' in hfs.read(hfs.by_path['READ-ME-FIRST.txt'])
-   launcher=hfs.by_path['Multi-Browser.app/Contents/MacOS/Multi-Browser']
+   assert b'Copy Browserland.app' in hfs.read(hfs.by_path['READ-ME-FIRST.txt'])
+   launcher=hfs.by_path['Browserland.app/Contents/MacOS/Browserland']
    assert launcher['mode']&0o111 and hfs.read(launcher).startswith(b'#!/bin/sh\n')
    for arch,cpu in [('x64',0x1000007),('arm64',0x100000c)]:
-    root='Multi-Browser.app/Contents/Resources/runtimes/'+arch+'/'
-    for file in ['Multi-Browser.app/Contents/MacOS/Electron','.runtime/chromium/Chromium.app/Contents/MacOS/Chromium']:
+    root='Browserland.app/Contents/Resources/runtimes/'+arch+'/'
+    for file in ['Browserland.app/Contents/MacOS/Electron','.runtime/chromium/Chromium.app/Contents/MacOS/Chromium']:
      rec=hfs.by_path[root+file];stream=hfs.chunks(rec['fork']);first=next(stream);stream.close()
      assert struct.unpack_from('<II',first)==(0xfeedfacf,cpu) and rec['mode']&0o111
   result=dict(ok=True,path=str(image),bytes=image.stat().st_size,sha256=sha(image),zipSha256=sha(archive),

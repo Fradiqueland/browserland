@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {prepareEmbeddedPage,navigatePreparedPage} from '../../src/embedded-page.mjs';
 import {validateProfile} from '../../src/core.mjs';
 import {bounded,closeWebContents,closeWindow,closeHTTPServer} from '../../src/operations.mjs';
-const root=resolve(import.meta.dirname,'../..'),directory=process.env.MULTIBROWSER_DATA||join(root,'test-results','startup-'+randomUUID());mkdirSync(directory,{recursive:true});app.setPath('userData',join(directory,'engine'));
+const root=resolve(import.meta.dirname,'../..'),directory=(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)||join(root,'test-results','startup-'+randomUUID());mkdirSync(directory,{recursive:true});app.setPath('userData',join(directory,'engine'));
 const checks=[],timings=[],requests=[];let report,host,server;
 const pass=(name,ok)=>{assert.ok(ok,name);checks.push({name,ok:true});appendFileSync(join(directory,'progress.log'),'PASS startup: '+name+'\n');};
 app.whenReady().then(async()=>{

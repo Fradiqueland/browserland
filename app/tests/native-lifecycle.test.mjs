@@ -6,7 +6,7 @@ import {Worker} from 'node:worker_threads';
 import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import assert from 'node:assert/strict';
-const root=resolve(import.meta.dirname,'..'),directory=process.env.MULTIBROWSER_DATA||mkdtempSync(join(root,'test-results','native-lifecycle-'));mkdirSync(directory,{recursive:true});
+const root=resolve(import.meta.dirname,'..'),directory=(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)||mkdtempSync(join(root,'test-results','native-lifecycle-'));mkdirSync(directory,{recursive:true});
 const manager=new NativeBrowsers({appRoot:root,dataRoot:directory}),tests=[],records=[];
 const originalCloseRecord=manager.closeRecord;manager.closeRecord=async function(record){const start=performance.now();try{return await originalCloseRecord.call(this,record);}finally{console.log('Close observation '+JSON.stringify({pid:record.child.pid,milliseconds:Math.round(performance.now()-start),exitCode:record.child.exitCode,pipeClosed:record.cdp.closed}));}};
 const check=(name,value)=>{assert.ok(value,name);tests.push({name,ok:true});console.log('PASS: '+name);};

@@ -1,6 +1,8 @@
-# Multi-Browser 0.21.6: one Open button for full browsers
+Historical release record. Product branding is Browserland; original archive filenames, hashes and compatibility identifiers below refer to the release named in this document. For current installation and behavior, see Browserland-0.22.0.md.
 
-The user confirmed that Google login worked when the installed Chrome was started with a new profile and only a user-data directory, a new window and the Google Accounts URL. Earlier attempts inside Multi-Browser, including the 0.21.5 normal-mode action, had been rejected. That comparison changed profile state, arguments, path and launching process together; it does not identify a single cause.
+# Browserland 0.21.6: one Open button for full browsers
+
+The user confirmed that Google login worked when the installed Chrome was started with a new profile and only a user-data directory, a new window and the Google Accounts URL. Earlier attempts inside Browserland, including the 0.21.5 normal-mode action, had been rejected. That comparison changed profile state, arguments, path and launching process together; it does not identify a single cause.
 
 ## Resulting behavior
 
@@ -25,7 +27,7 @@ The user confirmed that Google login worked when the installed Chrome was starte
 
 ## Updating
 
-Close Multi-Browser and every profile window first. Run the Windows EXE installer into the existing EXE installation directory to retain its `data` directory. For an older MSI installation, follow the EXE installer's instruction to remove the MSI through Windows Settings first. Keep a backup of profile data.
+Close Browserland and every profile window first. Run the Windows EXE installer into the existing EXE installation directory to retain its `data` directory. For an older MSI installation, follow the EXE installer's instruction to remove the MSI through Windows Settings first. Keep a backup of profile data.
 
 On Mac, preserve the existing portable workspace/data while replacing the application package. This update does not delete existing profile folders or import the temporary diagnostic Chrome session.
 

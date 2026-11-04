@@ -12,15 +12,17 @@ import uuid
 
 ROOT=Path(__file__).resolve().parents[1]
 VERSION=json.loads((ROOT/'package.json').read_text())['version']
-EXE=ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Portable.exe'
+EXE=ROOT/'dist'/f'Browserland-{VERSION}-Windows-Portable.exe'
 RUN=ROOT/'test-results'/('single-file-'+uuid.uuid4().hex)
 RUN.mkdir()
 DELIVERY=RUN/'Portable with spaces'
 DELIVERY.mkdir()
-APP=DELIVERY/'Multi-Browser.exe'
+APP=DELIVERY/'Browserland.exe'
 os.link(EXE,APP)
-ENV=dict(os.environ,MULTIBROWSER_CACHE=str(RUN/'runtime-cache'))
+ENV=dict(os.environ,BROWSERLAND_CACHE=str(RUN/'runtime-cache'))
+ENV.pop('BROWSERLAND_DATA',None)
 ENV.pop('MULTIBROWSER_DATA',None)
+ENV.pop('MULTIBROWSER_CACHE',None)
 checks=[]
 def check(name,value):
     if not value: raise AssertionError(name)
@@ -46,8 +48,9 @@ runtime=Path(first['Runtime'])
 spec=importlib.util.spec_from_file_location('builder',ROOT/'scripts/build-windows-single-file.py')
 builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
 group,images=app_icons.ico_resources()
-for label,path in [('single EXE',EXE),('application EXE',runtime/'Multi-Browser.exe')]:
+for label,path in [('single EXE',EXE),('application EXE',runtime/'Browserland.exe')]:
     resources=builder.pe_resources(path)
+    check(label+' exposes Browserland product and version metadata',resources[16][1][1033]==app_icons.version_resource('Browserland.exe'))
     check(label+' contains the exact chosen icon',resources[14][1][1033]==group and all(resources[3][i+1][1033]==image for i,image in enumerate(images)))
 check('Application carries the original PNG',(runtime/'resources/app/ui/assets/app-icon.png').read_bytes()==(ROOT/'ui/assets/app-icon.png').read_bytes())
 stamp=(runtime/'.runtime/chromium/chrome.dll').stat().st_mtime_ns
@@ -57,7 +60,7 @@ check('Repeated opening does not re-extract Chromium',(runtime/'.runtime/chromiu
 check('Default data remains beside the delivered EXE',Path(second['Data'])==DELIVERY/'data')
 
 # The normal application is tested only through the delivered EXE.
-smoke_env=dict(ENV,MULTIBROWSER_DATA=str(RUN/'smoke-data'))
+smoke_env=dict(ENV,BROWSERLAND_DATA=str(RUN/'smoke-data'))
 smoke=execute('application-integrations',['--self-test'],smoke_env,240)
 report=json.loads((RUN/'smoke-data'/'smoke-result.json').read_text())
 check('Real packaged application completes its integration suite',report['ok'] and len(report['tests'])>=89)
@@ -94,7 +97,7 @@ def application_windows(pids):
         pid=wintypes.DWORD();user32.GetWindowThreadProcessId(hwnd,ctypes.byref(pid))
         if pid.value in pids and user32.IsWindowVisible(hwnd):
             title=ctypes.create_unicode_buffer(256);user32.GetWindowTextW(hwnd,title,256)
-            if title.value=='Multi-Browser': result.append(hwnd)
+            if title.value=='Browserland': result.append(hwnd)
         return True
     user32.EnumWindows(callback,0)
     return result

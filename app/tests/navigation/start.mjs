@@ -4,7 +4,7 @@ import {mkdirSync,writeFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {bounded,until,closeHTTPServer} from '../../src/operations.mjs';
-const root=resolve(import.meta.dirname,'../..'),directory=process.argv.find(arg=>arg.startsWith('--fixture-directory='))?.slice('--fixture-directory='.length)||process.env.MULTIBROWSER_DATA||join(root,'test-results','navigation-'+randomUUID());mkdirSync(directory,{recursive:true});process.env.MULTIBROWSER_DATA=directory;
+const root=resolve(import.meta.dirname,'../..'),directory=process.argv.find(arg=>arg.startsWith('--fixture-directory='))?.slice('--fixture-directory='.length)||(process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)||join(root,'test-results','navigation-'+randomUUID());mkdirSync(directory,{recursive:true});process.env.BROWSERLAND_DATA=directory;
 const {quitApplication}=await import('../../src/main.mjs');
 const observations=[];let server,report;
 const watchdog=setTimeout(()=>{writeFileSync(join(directory,'navigation-result.json'),JSON.stringify({ok:false,error:'Navigation fixture exceeded 150 seconds',observations},null,2));app.exit(1);},150000);watchdog.unref();

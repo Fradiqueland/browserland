@@ -5,7 +5,7 @@ import {createServer} from 'node:http';
 import {NativeBrowsers} from '../src/native-browser.mjs';
 import {validateProfile} from '../src/core.mjs';
 import {until,bounded,closeHTTPServer} from '../src/operations.mjs';
-const appRoot=resolve(import.meta.dirname,'..'),root=process.argv.find(a=>a.startsWith('--data-root='))?.slice(12)|| (process.env.MULTIBROWSER_DATA?resolve(process.env.MULTIBROWSER_DATA):mkdtempSync(join(appRoot,'test-results','native-background-')));
+const appRoot=resolve(import.meta.dirname,'..'),root=process.argv.find(a=>a.startsWith('--data-root='))?.slice(12)|| ((process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)?resolve((process.env.BROWSERLAND_DATA||process.env.MULTIBROWSER_DATA)):mkdtempSync(join(appRoot,'test-results','native-background-')));
 mkdirSync(root,{recursive:true});
 const checks=[],errors=[],requests=[],serviceErrors=[];
 const pass=(name,ok)=>{assert.ok(ok,name);checks.push({name,ok:true});console.log('PASS Background: '+name);};

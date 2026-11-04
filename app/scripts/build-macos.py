@@ -80,7 +80,7 @@ def build(arch):
     executable_arch(chromium, 'chrome-mac/Chromium.app/Contents/MacOS/Chromium', arch)
     chrome_info = plistlib.loads(chromium.read('chrome-mac/Chromium.app/Contents/Info.plist'))
     version = json.loads((ROOT / 'package.json').read_text())['version']
-    name = 'Multi-Browser-' + version + '-mac-' + arch + '-candidate'
+    name = 'Browserland-' + version + '-mac-' + arch + '-candidate'
     destination = ROOT / 'dist' / (name + '.zip')
     if destination.exists():
         raise FileExistsError('Existing package preserved: ' + str(destination))
@@ -88,10 +88,10 @@ def build(arch):
     with zipfile.ZipFile(destination, 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as output:
         for info in electron.infolist():
             if info.filename.startswith('Electron.app/'):
-                target = name + '/Multi-Browser.app/' + info.filename[len('Electron.app/'):]
+                target = name + '/Browserland.app/' + info.filename[len('Electron.app/'):]
                 if info.filename == 'Electron.app/Contents/Info.plist':
                     settings = plistlib.loads(electron.read(info))
-                    settings.update(CFBundleDisplayName='Multi-Browser', CFBundleName='Multi-Browser', CFBundleIdentifier='net.antoniofradique.multibrowser', CFBundleShortVersionString=version, CFBundleVersion=version, CFBundleIconFile='app-icon.icns')
+                    settings.update(CFBundleDisplayName='Browserland', CFBundleName='Browserland', CFBundleIdentifier='net.antoniofradique.browserland', CFBundleShortVersionString=version, CFBundleVersion=version, CFBundleIconFile='app-icon.icns')
                     add_bytes(output, target, plistlib.dumps(settings))
                 else:
                     copy_entry(electron, info, output, target)
@@ -101,13 +101,13 @@ def build(arch):
             if not info.filename.startswith('chrome-mac/'):
                 raise ValueError('Unexpected Chromium archive root')
             copy_entry(chromium, info, output, name + '/.runtime/chromium/' + info.filename[len('chrome-mac/'):])
-        add_bytes(output, name + '/Multi-Browser.app/Contents/Resources/app-icon.icns', (ROOT/'ui/assets/app-icon.icns').read_bytes())
+        add_bytes(output, name + '/Browserland.app/Contents/Resources/app-icon.icns', (ROOT/'ui/assets/app-icon.icns').read_bytes())
         for file in source_files:
-            add_bytes(output, name + '/Multi-Browser.app/Contents/Resources/app/' + file.relative_to(ROOT).as_posix(), file.read_bytes())
+            add_bytes(output, name + '/Browserland.app/Contents/Resources/app/' + file.relative_to(ROOT).as_posix(), file.read_bytes())
         engine_info = dict(source=manifest['chromium']['url'], revision=manifest['chromium']['revision'], version=chrome_info['CFBundleShortVersionString'], archiveSha256=manifest['chromium']['sha256'], platform=manifest['chromium']['platform'], arch=arch, automaticUpdates=False)
-        add_bytes(output, name + '/.runtime/chromium/multi-browser-runtime.json', json.dumps(engine_info, indent=2).encode())
+        add_bytes(output, name + '/.runtime/chromium/browserland-runtime.json', json.dumps(engine_info, indent=2).encode())
         add_bytes(output, name + '/.runtime/chromium/CHROMIUM-LICENSE.txt', (ROOT / '.runtime/chromium/CHROMIUM-LICENSE.txt').read_bytes())
-        note = ('Multi-Browser ' + version + ' - macOS ' + arch + ' CANDIDATE\n\n'
+        note = ('Browserland ' + version + ' - macOS ' + arch + ' CANDIDATE\n\n'
                 'This is a development candidate, not a signed/notarized release.\n'
                 'Execution, permissions, extensions and session persistence must be\n'
                 'verified on a real Mac before distributing it as ready to use.\n'
@@ -116,7 +116,7 @@ def build(arch):
                 'not certify this application. Final signing requires a Mac.\n\n'
                 'Electron and Chromium are included; normal use needs no Node,\n'
                 'Python, Java, Chrome or Edge installation. Keep .runtime beside\n'
-                'Multi-Browser.app. Profiles are stored in the sibling data folder,\n'
+                'Browserland.app. Profiles are stored in the sibling data folder,\n'
                 'outside the .app bundle. Choose a writable local folder.\n'
                 'Copy data only with all profile windows and the manager closed.\n'
                 'System-encrypted credentials are not transferable by raw copying.\n'
@@ -127,9 +127,9 @@ def build(arch):
         if result.testzip() is not None:
             raise ValueError('Output ZIP CRC failure')
         for file in source_files:
-            if result.read(name + '/Multi-Browser.app/Contents/Resources/app/' + file.relative_to(ROOT).as_posix()) != file.read_bytes():
+            if result.read(name + '/Browserland.app/Contents/Resources/app/' + file.relative_to(ROOT).as_posix()) != file.read_bytes():
                 raise ValueError('Packaged source mismatch')
-        executable_arch(result, name + '/Multi-Browser.app/Contents/MacOS/Electron', arch)
+        executable_arch(result, name + '/Browserland.app/Contents/MacOS/Electron', arch)
         executable_arch(result, name + '/.runtime/chromium/Chromium.app/Contents/MacOS/Chromium', arch)
         links = sum(stat.S_ISLNK(i.external_attr >> 16) for i in result.infolist())
         if not links:

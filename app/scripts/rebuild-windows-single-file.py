@@ -20,7 +20,7 @@ if build.sha(payload)!=report['payloadSHA256']:
 env=dict(os.environ,GOROOT=str(build.GO_ROOT),GOCACHE=str(build.ROOT/'.cache/dmg-toolchain/go-build'),
          GOPATH=str(build.ROOT/'.cache/dmg-toolchain/gopath'),GOTOOLCHAIN='local',CGO_ENABLED='0',GOOS='windows',GOARCH='amd64')
 subprocess.run([str(build.GO_ROOT/'bin/gofmt.exe'),'-w',str(build.LAUNCHER)],check=True)
-build.write_resources(build.PORTABLE/'Multi-Browser.exe')
+build.write_resources(build.PORTABLE/'Browserland.exe')
 stub=build.CACHE/'launcher.exe'
 flags=f"-s -w -H=windowsgui -X main.payloadSHA={report['payloadSHA256']} -X main.manifestSHA={report['manifestSHA256']}"
 subprocess.run([str(build.GO_ROOT/'bin/go.exe'),'build','-trimpath','-ldflags',flags,'-o',str(stub),'.'],cwd=build.LAUNCHER,env=env,check=True)

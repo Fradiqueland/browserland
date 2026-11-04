@@ -1,6 +1,8 @@
-# Multi-Browser 0.21.5: normal browser mode
+Historical release record. Product branding is Browserland; original archive filenames, hashes and compatibility identifiers below refer to the release named in this document. For current installation and behavior, see Browserland-0.22.0.md.
 
-The user reported Google's “browser or app may not be secure” message in Multi-Browser, while signing in through Chrome directly worked. The existing full-browser path uses a debugging connection and injects profile identity/privacy settings. This is a plausible compatibility difference; Google's exact reason for rejecting this profile has not been verified.
+# Browserland 0.21.5: normal browser mode
+
+The user reported Google's “browser or app may not be secure” message in Browserland, while signing in through Chrome directly worked. The existing full-browser path uses a debugging connection and injects profile identity/privacy settings. This is a plausible compatibility difference; Google's exact reason for rejecting this profile has not been verified.
 
 Google documents restrictions on automated and embedded browsers: https://support.google.com/accounts/answer/7675428?hl=en.
 

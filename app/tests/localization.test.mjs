@@ -29,7 +29,7 @@ test('Preferencias guardadas e nomes dos grupos resistem a migracao de idioma',(
 });
 
 test('Textos estaticos das paginas estao no catalogo ou sao marcas e dados tecnicos',()=>{
- const known=new Set(MESSAGES.map(row=>row[0].toLocaleLowerCase('pt-PT'))),literal=new Set(['Multi-Browser','M','Multi','Browser','Antonio Fradique','https://AntonioFradique.net','HTTP','HTTPS','SOCKS4','SOCKS5','User-Agent','https://exemplo.pt','pt-PT','http://servidor:8080','proxy.exemplo.pt']);
+ const known=new Set(MESSAGES.map(row=>row[0].toLocaleLowerCase('pt-PT'))),literal=new Set(['Browserland','B','Browser','land','Antonio Fradique','https://AntonioFradique.net','HTTP','HTTPS','SOCKS4','SOCKS5','User-Agent','https://exemplo.pt','pt-PT','http://servidor:8080','proxy.exemplo.pt']);
  for(const file of ['index.html','browser.html','bookmark.html']){const html=readFileSync(join(import.meta.dirname,'../ui',file),'utf8');const values=[...[...html.matchAll(/>([^<>]+)</g)].map(m=>m[1]),...[...html.matchAll(/(?:title|aria-label|placeholder)="([^"]+)"/g)].map(m=>m[1])];for(const value of values){const key=value.trim().replace(/^[^\p{L}\p{N}]+/u,'');if(!/\p{L}/u.test(key)||literal.has(value.trim()))continue;assert.ok(known.has(key.toLocaleLowerCase('pt-PT')),file+': '+value);}}
 });
 

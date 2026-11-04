@@ -1,4 +1,4 @@
-// Multi-Browser ZIP adapter: keep Unix modes and symlinks on Windows.
+// Browserland ZIP adapter: keep Unix modes and symlinks on Windows.
 // Used with JetBrains/go-dmg-writer, pinned in build-macos-dmg.py.
 package dmg
 
@@ -14,7 +14,7 @@ import (
  "github.com/jetbrains/go-dmg-writer/internal/hfsplus"
 )
 
-const installNote = "Multi-Browser 0.21.0 - Intel and Apple Silicon\n\nCopy Multi-Browser.app from this image to a writable local folder before opening it.\nFor a portable workspace, choose a folder in your Home directory.\nDo not run the application directly from this read-only disk image.\nSettings and sessions are stored in a data folder beside the copied application.\nKeep this data folder with the application and close all windows before backing it up.\nmacOS 13+ is required. Electron and Chromium are included.\nThis development candidate is not signed/notarized and needs real Mac execution tests.\nDo not disable macOS protections.\n\nCreated by Antonio Fradique\nhttps://AntonioFradique.net\n"
+const installNote = "Browserland - Intel and Apple Silicon\n\nCopy Browserland.app from this image to a writable local folder before opening it.\nFor a portable workspace, choose a folder in your Home directory.\nDo not run the application directly from this read-only disk image.\nSettings and sessions are stored in a data folder beside the copied application.\nKeep this data folder with the application and close all windows before backing it up.\nmacOS 13+ is required. Electron and Chromium are included.\nThis development candidate is not signed/notarized and needs real Mac execution tests.\nDo not disable macOS protections.\n\nCreated by Antonio Fradique\nhttps://AntonioFradique.net\n"
 
 func zipSafe(name string) bool {
  return name!="" && !strings.HasPrefix(name,"/") && !strings.ContainsAny(name,"\\:") && path.Clean(name)==strings.TrimSuffix(name,"/") && name!="." && name!=".." && !strings.HasPrefix(name,"../")

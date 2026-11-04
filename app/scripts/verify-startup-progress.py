@@ -39,9 +39,9 @@ def controls(hwnd):
   return True
  user.EnumChildWindows(hwnd,visit,0);return result
 # Native single EXE: test cold extraction plus cache reuse against real progress controls.
-source=ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Portable.exe'
-app=RUN/'Multi-Browser.exe';os.link(source,app)
-env=dict(os.environ,MULTIBROWSER_CACHE=str(RUN/'cache'),MULTIBROWSER_DATA=str(RUN/'data'))
+source=ROOT/'dist'/f'Browserland-{VERSION}-Windows-Portable.exe'
+app=RUN/'Browserland.exe';os.link(source,app)
+env=dict(os.environ,BROWSERLAND_CACHE=str(RUN/'cache'),BROWSERLAND_DATA=str(RUN/'data'))
 for cycle in (1,2):
  report=RUN/f'launch-{cycle}.json'
  with (RUN/f'launch-{cycle}.log').open('wb') as log:
@@ -49,7 +49,7 @@ for cycle in (1,2):
   observed=[];seen=False;completed=False;bar=None;deadline=time.monotonic()+180
   try:
    while proc.poll() is None and time.monotonic()<deadline:
-    top=windows([proc.pid],'Starting Multi-Browser')
+    top=windows([proc.pid],'Starting Browserland')
     if top:
      bars=controls(top[0]);seen=True
      if bars:
@@ -77,7 +77,7 @@ for cycle in (1,2):
      if entry.parent==proc.pid:pids.append(entry.pid)
      valid=kernel.Process32NextW(snap,ctypes.byref(entry))
    finally:kernel.CloseHandle(snap)
-   manager=windows(pids,'Multi-Browser');check(f'Opening {cycle} reveals the manager after progress',bool(manager))
+   manager=windows(pids,'Browserland');check(f'Opening {cycle} reveals the manager after progress',bool(manager))
    for hwnd in manager:user.PostMessageW(hwnd,0x10,0,0)
    check(f'Opening {cycle} exits cleanly',proc.wait(timeout=30)==0)
    data=json.loads(report.read_text());check(f'Opening {cycle} waits for authenticated application readiness',data['StartupMS']>data['PreparationMS'] and data['OK'])
@@ -86,25 +86,25 @@ for cycle in (1,2):
   finally:
    if proc.poll() is None:subprocess.run(['C:/Windows/System32/taskkill.exe','/PID',str(proc.pid),'/T','/F'],capture_output=True)
 # Folder distribution exercises the common HTML splash shared with macOS.
-folder=ROOT/'dist'/f'Multi-Browser-{VERSION}-win-x64'/'Multi-Browser.exe'
-env=dict(os.environ,MULTIBROWSER_DATA=str(RUN/'folder-data'),MULTIBROWSER_STARTUP_TOKEN='1234567890abcdef1234567890abcdef')
-env.pop('MULTIBROWSER_SINGLE_FILE',None)
+folder=ROOT/'dist'/f'Browserland-{VERSION}-win-x64'/'Browserland.exe'
+env=dict(os.environ,BROWSERLAND_DATA=str(RUN/'folder-data'),BROWSERLAND_STARTUP_TOKEN='1234567890abcdef1234567890abcdef')
+env.pop('BROWSERLAND_SINGLE_FILE',None)
 with (RUN/'folder.log').open('wb') as log:
  proc=subprocess.Popen([str(folder)],cwd=folder.parent,env=env,stdout=log,stderr=log)
  try:
   seen=False;manager=[];deadline=time.monotonic()+45
   while time.monotonic()<deadline and proc.poll() is None:
-   seen=seen or bool(windows([proc.pid],'Starting Multi-Browser'))
-   manager=windows([proc.pid],'Multi-Browser')
+   seen=seen or bool(windows([proc.pid],'Starting Browserland'))
+   manager=windows([proc.pid],'Browserland')
    if manager:break
    time.sleep(.01)
   check('Standalone folder opens the manager',bool(manager))
-  check('Standalone folder closes its startup window',not windows([proc.pid],'Starting Multi-Browser'))
+  check('Standalone folder closes its startup window',not windows([proc.pid],'Starting Browserland'))
   for hwnd in manager:user.PostMessageW(hwnd,0x10,0,0)
   check('Standalone folder exits cleanly',proc.wait(timeout=30)==0)
  finally:
   if proc.poll() is None:subprocess.run(['C:/Windows/System32/taskkill.exe','/PID',str(proc.pid),'/T','/F'],capture_output=True)
-check('Standalone folder emits readiness after loading the manager','MULTIBROWSER_STARTUP_READY=1234567890abcdef1234567890abcdef' in (RUN/'folder.log').read_text(errors='replace'))
+check('Standalone folder emits readiness after loading the manager','BROWSERLAND_STARTUP_READY=1234567890abcdef1234567890abcdef' in (RUN/'folder.log').read_text(errors='replace'))
 result=dict(ok=True,version=VERSION,checks=checks,run=str(RUN),macExecutionVerified=False)
 (ROOT/'reference'/f'startup-progress-{VERSION}.json').write_text(json.dumps(result,indent=2))
 print('STARTUP_PROGRESS_OK',flush=True)

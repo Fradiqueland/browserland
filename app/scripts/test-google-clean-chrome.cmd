@@ -1,6 +1,6 @@
 @echo off
 setlocal DisableDelayedExpansion
-title Multi-Browser - Teste de compatibilidade Google
+title Browserland - Teste de compatibilidade Google
 
 rem Manual diagnostic only. Never use an existing browser profile, debugging,
 rem extensions, custom identity, proxy overrides, or automatic account actions.
@@ -10,7 +10,7 @@ if not defined MB_TEST_CHROME if defined ProgramFiles(x86) if exist "%ProgramFil
 if not defined MB_TEST_CHROME if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe" set "MB_TEST_CHROME=%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"
 if not defined MB_TEST_CHROME goto missing_chrome
 if not defined LOCALAPPDATA goto missing_data
-set "MB_TEST_ROOT=%LOCALAPPDATA%\Multi-Browser-Google-Diagnostic"
+set "MB_TEST_ROOT=%LOCALAPPDATA%\Browserland-Google-Diagnostic"
 if not exist "%MB_TEST_ROOT%\" mkdir "%MB_TEST_ROOT%"
 if not exist "%MB_TEST_ROOT%\" goto missing_data
 
@@ -22,7 +22,7 @@ if not exist "%MB_TEST_PROFILE%\" goto missing_data
 
 echo Vai abrir o Google Chrome instalado com um perfil novo e separado.
 echo O teste usa as definicoes normais de rede do Chrome.
-echo Os perfis existentes do Multi-Browser e do Chrome ficam intactos.
+echo Os perfis existentes do Browserland e do Chrome ficam intactos.
 echo A sessao de teste fica guardada nesta pasta:
 echo "%MB_TEST_PROFILE%"
 echo.

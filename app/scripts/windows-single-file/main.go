@@ -21,6 +21,7 @@ import (
 var payloadSHA string
 var manifestSHA string
 
+// Keep the established 16-byte archive format marker for existing tooling.
 const footerMagic = "MULTIBROWSER-SF1"
 const manifestName = "single-file-manifest.json"
 
@@ -205,7 +206,7 @@ func openBundle(path string) (*bundle, error) {
 	if count != len(listed) {
 		return nil, errors.New("manifest does not match the archive")
 	}
-	for _, required := range []string{"Multi-Browser.exe", ".runtime/chromium/chrome.exe", "resources/app/package.json"} {
+	for _, required := range []string{"Browserland.exe", ".runtime/chromium/chrome.exe", "resources/app/package.json"} {
 		if !listed[strings.ToLower(required)] {
 			return nil, errors.New("bundled application is incomplete")
 		}
@@ -367,22 +368,28 @@ func ensureRuntime(b *bundle, base string) (string, bool, error) {
 func dataDirectory(exe, override string) (string, error) {
 	if override != "" {
 		if !filepath.IsAbs(override) {
-			return "", errors.New("MULTIBROWSER_DATA must be an absolute path")
+			return "", errors.New("BROWSERLAND_DATA must be an absolute path")
 		}
 		return filepath.Clean(override), nil
 	}
 	return filepath.Join(filepath.Dir(exe), "data"), nil
 }
+func compatibleEnv(suffix string) string {
+	if value := os.Getenv("BROWSERLAND_" + suffix); value != "" {
+		return value
+	}
+	return os.Getenv("MULTIBROWSER_" + suffix)
+}
 func environment(data, exe string) []string {
 	var values []string
 	for _, item := range os.Environ() {
 		key := strings.ToUpper(strings.SplitN(item, "=", 2)[0])
-		if key == "MULTIBROWSER_STARTUP_TOKEN" || key == "MULTIBROWSER_DATA" || key == "MULTIBROWSER_SINGLE_FILE" || key == "ELECTRON_RUN_AS_NODE" || key == "NODE_OPTIONS" || key == "NODE_PATH" {
+		if key == "BROWSERLAND_STARTUP_TOKEN" || key == "BROWSERLAND_DATA" || key == "BROWSERLAND_SINGLE_FILE" || key == "MULTIBROWSER_STARTUP_TOKEN" || key == "MULTIBROWSER_DATA" || key == "MULTIBROWSER_SINGLE_FILE" || key == "ELECTRON_RUN_AS_NODE" || key == "NODE_OPTIONS" || key == "NODE_PATH" {
 			continue
 		}
 		values = append(values, item)
 	}
-	return append(values, "MULTIBROWSER_DATA="+data, "MULTIBROWSER_SINGLE_FILE="+exe)
+	return append(values, "BROWSERLAND_DATA="+data, "BROWSERLAND_SINGLE_FILE="+exe)
 }
 func run() (launchReport, int, error) {
 	started := time.Now()
@@ -391,7 +398,7 @@ func run() (launchReport, int, error) {
 	if e != nil {
 		return report, 1, e
 	}
-	data, e := dataDirectory(exe, os.Getenv("MULTIBROWSER_DATA"))
+	data, e := dataDirectory(exe, compatibleEnv("DATA"))
 	if e != nil {
 		return report, 1, e
 	}
@@ -403,16 +410,16 @@ func run() (launchReport, int, error) {
 	defer b.file.Close()
 	report.Version = b.manifest.Version
 	report.Files = len(b.manifest.Files)
-	base := os.Getenv("MULTIBROWSER_CACHE")
+	base := compatibleEnv("CACHE")
 	if base == "" {
 		cache, e := os.UserCacheDir()
 		if e != nil {
 			return report, 1, e
 		}
-		base = filepath.Join(cache, "AntonioFradique", "Multi-Browser", "single-file-runtime")
+		base = filepath.Join(cache, "AntonioFradique", "Browserland", "single-file-runtime")
 	}
 	if !filepath.IsAbs(base) {
-		return report, 1, errors.New("MULTIBROWSER_CACHE must be an absolute path")
+		return report, 1, errors.New("BROWSERLAND_CACHE must be an absolute path")
 	}
 	var args []string
 	verify := false
@@ -469,9 +476,9 @@ func run() (launchReport, int, error) {
 		return report, 1, e
 	}
 	token := hex.EncodeToString(nonce)
-	command := exec.Command(filepath.Join(root, "Multi-Browser.exe"), args...)
+	command := exec.Command(filepath.Join(root, "Browserland.exe"), args...)
 	command.Dir = root
-	command.Env = append(environment(data, exe), "MULTIBROWSER_STARTUP_TOKEN="+token)
+	command.Env = append(environment(data, exe), "BROWSERLAND_STARTUP_TOKEN="+token)
 	command.Stdout = writer
 	command.Stderr = log
 	if e = command.Start(); e != nil {
@@ -487,7 +494,7 @@ func run() (launchReport, int, error) {
 		scanner.Buffer(make([]byte, 4096), 1024*1024)
 		for scanner.Scan() {
 			line := scanner.Text()
-			if line == "MULTIBROWSER_STARTUP_READY="+token {
+			if line == "BROWSERLAND_STARTUP_READY="+token {
 				select {
 				case ready <- struct{}{}:
 				default:

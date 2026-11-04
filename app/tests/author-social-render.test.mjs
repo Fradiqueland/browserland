@@ -10,7 +10,7 @@ import {LANGUAGES} from '../src/languages.mjs';
 const root=resolve(import.meta.dirname,'..');
 const version=JSON.parse(await readFile(join(root,'package.json'),'utf8')).version;
 const run=await mkdtemp(join(root,'.cache/social-render-'));
-const chrome=process.env.MULTIBROWSER_TEST_CHROMIUM||join(root,'dist/Multi-Browser-for-Windows-0.21.2/.runtime/chromium/chrome.exe');
+const chrome=(process.env.BROWSERLAND_TEST_CHROMIUM||process.env.MULTIBROWSER_TEST_CHROMIUM)||join(root,'.runtime/chromium/chrome.exe');
 const state={schema:2,profiles:[],groups:['Personal','Work'],groupDetails:{},history:[],bookmarks:[],downloads:[],errors:[],settings:{theme:'dark',language:'en',appearance:'modern'},runtime:{version,electron:'44.9.3',chromium:'158',nativeEngines:[]}};
 const fixture=`const state=${JSON.stringify(state)},links=${JSON.stringify(AUTHOR_SOCIAL_LINKS)};let notify=()=>{};window.fixture={opened:[],set(settings){Object.assign(state.settings,settings);notify(structuredClone(state));}};window.desktop={subscribe(fn){notify=fn;return()=>{}},async request(action,data={}){if(action==='authorSocial'){const link=links.find(link=>link.id===data.id);if(!link)throw Error('Unknown social network.');window.fixture.opened.push({id:link.id,url:link.url});return {opened:true}}if(action==='state')return structuredClone(state);if(['language','appearance','theme'].includes(action)){Object.assign(state.settings,data);notify(structuredClone(state));return structuredClone(state)}throw Error('Unexpected fixture action: '+action)}};`;
 const server=createServer(async(req,res)=>{

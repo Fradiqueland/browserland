@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference='Stop'
+$ErrorActionPreference='Stop'
 $appRoot=Split-Path -Parent $PSScriptRoot
 $runtime=& (Join-Path $PSScriptRoot 'runtime.ps1')
 $nodeExe=Join-Path (Split-Path -Parent $appRoot) 'rea\.cache\rea-toolchain\node-v24.22.1-win-x64\node.exe'
@@ -17,13 +17,13 @@ foreach($previousTest in $previousTests) {
 }
 . (Join-Path $PSScriptRoot 'desktop-check.ps1')
 Push-Location -LiteralPath $appRoot
-$previousData=$env:MULTIBROWSER_DATA
+$previousData=$env:BROWSERLAND_DATA
 try {
  & (Join-Path $appRoot 'tests/runtime.test.ps1') | Out-Host
  $coreDirectory=Join-Path $appRoot ('test-results\core-'+[guid]::NewGuid().ToString('N'))
  New-Item -ItemType Directory -Path $coreDirectory -Force | Out-Null
  $coreOutput=Join-Path $coreDirectory 'tap.log';$coreErrors=Join-Path $coreDirectory 'stderr.log'
- $coreProcess=Start-Process -FilePath $nodeExe -ArgumentList '--test --test-reporter=tap tests/core.test.mjs tests/groups.test.mjs tests/localization.test.mjs tests/portable-extensions.test.mjs tests/platform.test.mjs tests/profile-import.test.mjs tests/profile-tasks.test.mjs tests/native-path.test.mjs tests/standard-browser.test.mjs tests/plain-browser.test.mjs' -WorkingDirectory $appRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput $coreOutput -RedirectStandardError $coreErrors
+ $coreProcess=Start-Process -FilePath $nodeExe -ArgumentList '--test --test-reporter=tap tests/core.test.mjs tests/branding.test.mjs tests/groups.test.mjs tests/localization.test.mjs tests/portable-extensions.test.mjs tests/platform.test.mjs tests/profile-import.test.mjs tests/profile-tasks.test.mjs tests/native-path.test.mjs tests/standard-browser.test.mjs tests/plain-browser.test.mjs' -WorkingDirectory $appRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput $coreOutput -RedirectStandardError $coreErrors
  try {
   [void]$coreProcess.Handle
   if(-not $coreProcess.WaitForExit(30000)){Stop-DesktopCheckProcess $coreProcess;throw 'Tempo limite nos testes de dominio.'}
@@ -44,5 +44,5 @@ try {
  $desktop=Invoke-DesktopCheck ('"'+$appRoot+'" --self-test') 'smoke-result.json' 'Integracoes, isolamento, privacidade, proxy e transferencias locais'
  $fixture=Join-Path $appRoot 'tests\rea-ui'
  $interface=Invoke-DesktopCheck ('"'+$fixture+'" --ui-suite --ui-test-exit --native-ui-tests') 'ui-checks\ui-result.json' 'Botoes, formularios e controlos do navegador'
- Write-Host "MULTIBROWSER_DESKTOP_OK: $($startup.tests.Count) arranque + $($navigation.tests.Count) navegacao + $($native.tests.Count) Chromium + $($nativeDownloads.tests.Count) downloads Chromium + $($background.tests.Count) background + $($extensions.tests.Count) extensoes + $($lifecycle.tests.Count) ciclo de vida + $($desktop.tests.Count) integracoes + $($interface.tests.Count) interface." -ForegroundColor Green
-} finally {$env:MULTIBROWSER_DATA=$previousData;Pop-Location}
+ Write-Host "BROWSERLAND_DESKTOP_OK: $($startup.tests.Count) arranque + $($navigation.tests.Count) navegacao + $($native.tests.Count) Chromium + $($nativeDownloads.tests.Count) downloads Chromium + $($background.tests.Count) background + $($extensions.tests.Count) extensoes + $($lifecycle.tests.Count) ciclo de vida + $($desktop.tests.Count) integracoes + $($interface.tests.Count) interface." -ForegroundColor Green
+} finally {$env:BROWSERLAND_DATA=$previousData;Pop-Location}

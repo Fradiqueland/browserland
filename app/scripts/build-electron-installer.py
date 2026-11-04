@@ -1,5 +1,6 @@
 """Build a genuine NSIS Setup.exe containing the complete Electron/Chromium app."""
 import argparse,hashlib,json,shutil,subprocess,uuid,zipfile
+import app_icons
 from pathlib import Path,PurePosixPath
 ROOT=Path(__file__).resolve().parents[1]
 VERSION=json.loads((ROOT/'package.json').read_text())['version']
@@ -38,23 +39,39 @@ def updated_setup_payload(source):
  # Reuse a verified installer when the original portable archive is absent.
  # Extract to a fresh build directory; never modify installed files or profiles.
  proofs=[json.loads(p.read_text()) for p in (ROOT/'reference').glob('electron-installer-*.json')]
- proof=next((p for p in proofs if Path(p['file']).name==source.name),None)
- if not proof or digest(source)!=proof['sha256']:raise ValueError('Base installer checksum mismatch')
+ source_hash=digest(source)
+ # User-renamed downloads are accepted by the verified bytes, not a basename.
+ proof=next((p for p in proofs if p.get('sha256')==source_hash),None)
+ if not proof:raise ValueError('Base installer checksum mismatch')
  stage=WORK/('payload-'+VERSION);stage.mkdir(parents=True,exist_ok=False)
  extractor=WORK/'full-sevenzip/7z.exe'
  subprocess.run([str(extractor),'x','-y','-o'+str(stage),str(source)],check=True,timeout=180)
  package=stage/'resources/app'
  if json.loads((package/'package.json').read_text())['version']!=proof['version']:raise ValueError('Base application version mismatch')
- files=[p for p in stage.rglob('*') if p.is_file() and p.relative_to(stage).parts[0]!='$PLUGINSDIR' and p.name!='Uninstall Multi-Browser.exe']
+ uninstallers={'Uninstall Browserland.exe','Uninstall Multi-Browser.exe'}
+ files=[p for p in stage.rglob('*') if p.is_file() and p.relative_to(stage).parts[0]!='$PLUGINSDIR' and p.name not in uninstallers]
  if len(files)!=proof['payloadFiles']:raise ValueError('Base application payload count mismatch')
  if any(p.is_symlink() or 'data'==p.relative_to(stage).parts[0].lower() for p in files):raise ValueError('Unexpected base application data')
- runtime_hashes={p.relative_to(stage).as_posix():digest(p) for p in files if not p.is_relative_to(package) and p.name!='LEIA-ME.txt'}
+ branded_names={'Multi-Browser.exe','Multi-Browser.cmd','Browserland.exe','Browserland.cmd','LEIA-ME.txt'}
+ runtime_hashes={p.relative_to(stage).as_posix():digest(p) for p in files if not p.is_relative_to(package) and p.name not in branded_names}
+ # Only the application filename, icon and VERSIONINFO change. The executable
+ # code is checked by app_icons; Chromium and other runtime files stay identical.
+ legacy_exe=stage/'Multi-Browser.exe';executable=stage/'Browserland.exe'
+ if legacy_exe.exists():legacy_exe.rename(executable)
+ legacy_cmd=stage/'Multi-Browser.cmd'
+ if legacy_cmd.exists():legacy_cmd.rename(stage/'Browserland.cmd')
+ if (stage/'Browserland.cmd').exists():(stage/'Browserland.cmd').write_bytes(b'@echo off\r\nstart "" "%~dp0Browserland.exe"\r\n')
+ app_icons.apply_windows(executable)
+ legacy_manifest=stage/'.runtime/chromium/multi-browser-runtime.json'
+ if legacy_manifest.exists():
+  legacy_manifest.rename(stage/'.runtime/chromium/browserland-runtime.json')
+  runtime_hashes['.runtime/chromium/browserland-runtime.json']=runtime_hashes.pop('.runtime/chromium/multi-browser-runtime.json')
  for folder in ['src','ui']:
   shutil.copytree(ROOT/folder,package/folder,dirs_exist_ok=True)
  shutil.copy2(ROOT/'package.json',package/'package.json');shutil.copy2(ROOT/'LEIA-ME.txt',stage/'LEIA-ME.txt')
  entries=[]
  for file in sorted(stage.rglob('*')):
-  if not file.is_file() or file.relative_to(stage).parts[0]=='$PLUGINSDIR' or file.name=='Uninstall Multi-Browser.exe':continue
+  if not file.is_file() or file.relative_to(stage).parts[0]=='$PLUGINSDIR' or file.name in uninstallers:continue
   relative=file.relative_to(stage).as_posix();sha=digest(file)
   if relative in runtime_hashes and sha!=runtime_hashes[relative]:raise ValueError('Native runtime changed')
   entries.append({'Path':relative,'Size':file.stat().st_size,'SHA256':sha})
@@ -64,8 +81,8 @@ def updated_setup_payload(source):
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--compiler',type=Path);parser.add_argument('--base-setup',type=Path);args=parser.parse_args()
  compiler=args.compiler or WORK/'nsis-3.13/Bin/makensis.exe'
- source=ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Portable.exe'
- output=ROOT/'dist'/f'Multi-Browser-{VERSION}-Windows-Setup.exe'
+ source=ROOT/'dist'/f'Browserland-{VERSION}-Windows-Portable.exe'
+ output=ROOT/'dist'/f'Browserland-{VERSION}-Windows-Setup.exe'
  if output.exists():raise FileExistsError('Existing EXE installer preserved')
  if args.base_setup:
   stage,entries,proof=updated_setup_payload(args.base_setup.resolve())
@@ -93,13 +110,16 @@ def main():
  subprocess.run(base+['/DMB_PAYLOAD_INCLUDE='+str(include),'/DMB_OUTPUT='+str(output),str(ROOT/'scripts/windows-installer-nsis.nsi')],check=True,timeout=300)
  # Same installer/uninstaller instructions, with a tiny payload and isolated
  # shortcuts/registry, so native testing cannot affect the user's real app.
- fixture=WORK/'test-payload';fixture.mkdir(exist_ok=True);(fixture/'Multi-Browser.exe').write_bytes(b'controlled installer fixture; never launched')
- fake=[{'Path':'Multi-Browser.exe'}];test_include=WORK/'test-payload.nsh';payload_include(fake,fixture,test_include)
+ fixture=WORK/'test-payload';fixture.mkdir(exist_ok=True);(fixture/'Browserland.exe').write_bytes(b'controlled installer fixture; never launched')
+ fake=[{'Path':'Browserland.exe'}];test_include=WORK/'test-payload.nsh';payload_include(fake,fixture,test_include)
  test_exe=WORK/'Test-Setup.exe';test_id=uuid.uuid4().hex
  subprocess.run(base+['/DMB_TEST=1','/DMB_TEST_ID='+test_id,'/DMB_PAYLOAD_INCLUDE='+str(test_include),'/DMB_OUTPUT='+str(test_exe),str(ROOT/'scripts/windows-installer-nsis.nsi')],check=True,timeout=30)
- result=dict(version=VERSION,file=str(output),bytes=output.stat().st_size,sha256=digest(output),format='NSIS Setup.exe',application='Electron with bundled full Chromium',applicationArchitecture='x64',installerArchitecture='x86-unicode',frameworkVersion='3.13',scope='current-user',defaultDirectory=r'%LOCALAPPDATA%\Programs\Multi-Browser',desktopShortcut=True,startMenuShortcut=True,uninstallEntry=True,externalRuntimesRequired=False,requiresWindowsInstallerService=False,payloadFiles=len(entries),dataPreservedOnUpdate=True,dataPreservedOnUninstall=True,uninstallUsesRecursiveDelete=False,sourcePortableSHA256=proof['sha256'],signed=False,nativeExecutionTestPending=True,testSetup=str(test_exe),testId=test_id)
+ result=dict(version=VERSION,file=str(output),bytes=output.stat().st_size,sha256=digest(output),format='NSIS Setup.exe',application='Electron with bundled full Chromium',applicationArchitecture='x64',installerArchitecture='x86-unicode',frameworkVersion='3.13',scope='current-user',defaultDirectory=r'%LOCALAPPDATA%\Programs\Browserland',desktopShortcut=True,startMenuShortcut=True,uninstallEntry=True,externalRuntimesRequired=False,requiresWindowsInstallerService=False,payloadFiles=len(entries),dataPreservedOnUpdate=True,dataPreservedOnUninstall=True,uninstallUsesRecursiveDelete=False,sourcePortableSHA256=proof['sha256'],signed=False,nativeExecutionTestPending=True,testSetup=str(test_exe),testId=test_id)
  if args.base_setup:
-  result['sourceInstallerSHA256']=result.pop('sourcePortableSHA256');result['nativeRuntimeBytesUnchanged']=True
+  result['sourceInstallerSHA256']=result.pop('sourcePortableSHA256')
+  result['nativeRuntimeBytesUnchangedExceptApplicationBranding']=True
+  result['applicationCodeSectionsUnchanged']=True
+  result['legacyUpgradeUsesExistingDirectory']=True
  (ROOT/'reference').mkdir(exist_ok=True);(ROOT/'reference'/f'electron-installer-{VERSION}.json').write_text(json.dumps(result,indent=2))
  print('ELECTRON_NSIS_SETUP_BUILT '+str(output),flush=True)
 if __name__=='__main__':main()

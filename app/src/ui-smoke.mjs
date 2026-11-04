@@ -1,3 +1,4 @@
+import {environmentValue} from './branding.mjs';
 import {capturePage} from './capture-page.mjs';
 import {runLocaleSmoke} from './locale-smoke.mjs';
 import {app,BrowserWindow,session,Menu,clipboard} from 'electron';
@@ -26,7 +27,7 @@ export async function runUISmoke({manager,dialog,directory}){
  try{
   await wait(()=>evaluate("typeof window.desktop?.request==='function'&&document.querySelector('#new-profile')!==null"));
   pass('Gestor carrega modulo e ponte segura',await evaluate("typeof require==='undefined'&&typeof window.desktop.request==='function'&&document.querySelectorAll('.page').length===7"));
-  const initialState=await state();pass('Rodape apresenta a versao real da aplicacao',/^\d+\.\d+\.\d+$/.test(initialState.runtime.version)&&await evaluate("document.querySelector('#application-version').textContent")===('Multi-Browser · '+initialState.runtime.version));
+  const initialState=await state();pass('Rodape apresenta a versao real da aplicacao',/^\d+\.\d+\.\d+$/.test(initialState.runtime.version)&&await evaluate("document.querySelector('#application-version').textContent")===('Browserland · '+initialState.runtime.version));
   await runLocaleSmoke({manager,directory,pass});
   await click('#new-profile');
   pass('Formulario permite escolher motor completo sem alterar perfis existentes',await evaluate("Array.from(document.querySelector('#engine').options).some(o=>o.value==='embedded')&&document.querySelector('#engine-hint').textContent.length>0"));
@@ -152,13 +153,13 @@ export async function runUISmoke({manager,dialog,directory}){
   await click('[data-page=extensions]');
   await evaluate("(()=>{const row=[...document.querySelectorAll('#extension-list .list-item')].find(row=>row.querySelector('strong').textContent==='UI Perfil editado');[...row.querySelectorAll('button')].find(button=>button.textContent.startsWith('Adicionar')).click()})()");
   await wait(async()=>(await state()).profiles.find(p=>p.id===principal.id).extensions.length===1);
-  const principalSession=session.fromPath(join(process.env.MULTIBROWSER_DATA,'profiles',principal.id));
+  const principalSession=session.fromPath(join(environmentValue('DATA'),'profiles',principal.id));
   const loadedExtension=(await state()).profiles.find(p=>p.id===principal.id).extensions[0];
   pass('Adicionar extensao carrega realmente o manifest no perfil',!!principalSession.extensions.getExtension(loadedExtension.id));
   await evaluate("(()=>{const row=[...document.querySelectorAll('#extension-list .list-item')].find(row=>row.querySelector('strong').textContent==='UI Perfil editado');[...row.querySelectorAll('button')].find(button=>button.textContent==='Remover').click()})()");
   await wait(async()=>(await state()).profiles.find(p=>p.id===principal.id).extensions.length===0);
   pass('Remover extensao descarrega-a da sessao',!principalSession.extensions.getExtension(loadedExtension.id));
-  const otherProfile=(await state()).profiles.find(p=>p.id!==principal.id),otherSession=session.fromPath(join(process.env.MULTIBROWSER_DATA,'profiles',otherProfile.id));
+  const otherProfile=(await state()).profiles.find(p=>p.id!==principal.id),otherSession=session.fromPath(join(environmentValue('DATA'),'profiles',otherProfile.id));
   await principalSession.cookies.set({url:'http://127.0.0.1/',name:'ui-clear-fixture',value:'principal'});await otherSession.cookies.set({url:'http://127.0.0.1/',name:'ui-clear-fixture',value:'outro'});
   dialog.showMessageBox=async()=>({response:1});await click('[data-page=settings]');
   await setForm('#clear-data-form',{profileId:principal.id,siteData:false,cache:false,history:true,hours:'0'});await submit('#clear-data-form');
@@ -196,7 +197,7 @@ export async function runUISmoke({manager,dialog,directory}){
    const share=join(directory,'native-session.json');dialog.showSaveDialog=async()=>({canceled:false,filePath:share});
    await request('export',{id:native.id,cookies:true,password:'fixture-password-2026'});
    const {decryptBundle}=await import('./core.mjs');const bundle=decryptBundle(readFileSync(share,'utf8'),'fixture-password-2026');
-   pass('Partilha nativa inclui armazenamento autenticado no ficheiro encriptado',bundle.profile.engine===engine.id&&bundle.siteStorage.format==='multi-browser-site-storage');
+   pass('Partilha nativa inclui armazenamento autenticado no ficheiro encriptado',bundle.profile.engine===engine.id&&bundle.siteStorage.format==='browserland-site-storage');
    dialog.showOpenDialog=async()=>({canceled:false,filePaths:[share]});const pending=await request('import');const imported=await request('import',{token:pending.token,password:'fixture-password-2026'});
    pass('Importacao encriptada nativa cria perfil independente',imported.imported===1&&(await state()).profiles.at(-1).id!==native.id&&(await state()).profiles.at(-1).engine===engine.id);
    await request('delete',{id:(await state()).profiles.at(-1).id});await request('delete',{id:native.id});

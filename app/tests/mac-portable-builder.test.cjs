@@ -4,18 +4,18 @@ const base=path.resolve(__dirname,'..'),builder=path.join(base,'.cache','builder
 const apps=require(path.join(builder,'src/shared/portable-app.js'));
 const runtime=require(path.join(builder,'src/shared/portable-runtime.js'));
 const version=JSON.parse(fs.readFileSync(path.join(base,'package.json'),'utf8')).version;
-const source=process.env.MULTIBROWSER_MAC_PORTABLE||path.join(base,'dist',version,'Mac-Portable');
+const source=process.env.BROWSERLAND_MAC_PORTABLE||process.env.MULTIBROWSER_MAC_PORTABLE||path.join(base,'dist',version,'Mac-Portable');
 const testing=fs.mkdtempSync(path.join(base,'.cache/mac-portable-builder-test-'));
 const assetsDir=path.join(testing,'assets');fs.mkdirSync(assetsDir);
 const checks=[];const ok=(label)=>{checks.push(label);console.log('PASS '+label);};
 function digest(file){const hash=crypto.createHash('sha256'),fd=fs.openSync(file,'r'),buffer=Buffer.alloc(1024*1024);try{let n;while((n=fs.readSync(fd,buffer,0,buffer.length,null)))hash.update(buffer.subarray(0,n));}finally{fs.closeSync(fd)}return hash.digest('hex');}
 (async()=>{
  const scan=apps.scanPortableFolder(source);
- assert.equal(scan.candidates.length,1);assert.equal(scan.candidates[0].path,'Multi-Browser.app');
+ assert.equal(scan.candidates.length,1);assert.equal(scan.candidates[0].path,'Browserland.app');
  assert.equal(scan.candidates[0].kind,'app');assert.deepEqual(scan.candidates[0].architectures,['x64','arm64']);
  assert(scan.candidates[0].executable&&scan.hasSymlinks);
  ok('Builder 2.6.5 detects one universal Mac application from Windows');
- const data=apps.importPortableProject({sourcePath:source,assetsDir,entries:{windows:null,mac:'Multi-Browser.app'},allowWine:false});
+ const data=apps.importPortableProject({sourcePath:source,assetsDir,entries:{windows:null,mac:'Browserland.app'},allowWine:false});
  const target=apps.assertPortableTarget({data,assetsDir,target:'mac'});
  assert.equal(target.requiresWine,false);assert.equal(target.launchKind,'app');assert.deepEqual(target.architectures,['x64','arm64']);
  ok('Actual portable import and Mac-target validation succeed without Wine');
@@ -38,7 +38,7 @@ function digest(file){const hash=crypto.createHash('sha256'),fd=fs.openSync(file
  const storageDir=path.join(testing,'persistent-working-copy');const launches=[];
  function execFileImpl(executable,args,options,callback){
   assert.equal(executable,'/usr/bin/open');assert.deepEqual(args.slice(0,2),['-n','-a']);
-  assert(args[2].endsWith(path.sep+'Multi-Browser.app'));assert(fs.statSync(args[2]).isDirectory());
+  assert(args[2].endsWith(path.sep+'Browserland.app'));assert(fs.statSync(args[2]).isDirectory());
   assert.equal(options.shell,false);launches.push(args[2]);queueMicrotask(()=>callback(null));
   return {kill(){}};
  }

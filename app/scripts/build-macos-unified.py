@@ -17,7 +17,7 @@ def launcher_script(commands=None):
 set -eu
 fail() {
     printf '%s\\n' "$1" >&2
-    ALERT -e 'display alert "Multi-Browser could not start" message "Extract the complete package into a writable local folder. macOS 13 or later is required. Do not remove the bundled runtimes." as critical' >/dev/null 2>&1 || true
+    ALERT -e 'display alert "Browserland could not start" message "Extract the complete package into a writable local folder. macOS 13 or later is required. Do not remove the bundled runtimes." as critical' >/dev/null 2>&1 || true
     exit 1
 }
 macos_dir=$(CDPATH= cd -P "$(dirname "$0")" && pwd -P) || exit 1
@@ -36,11 +36,17 @@ else
     fail "Unsupported Mac architecture: $machine"
 fi
 runtime_dir="$contents_dir/Resources/runtimes/$runtime_arch"
-executable="$runtime_dir/Multi-Browser.app/Contents/MacOS/Electron"
+executable="$runtime_dir/Browserland.app/Contents/MacOS/Electron"
 chromium="$runtime_dir/.runtime/chromium/Chromium.app/Contents/MacOS/Chromium"
 [ -x "$executable" ] && [ -x "$chromium" ] || fail 'A bundled runtime is missing or not executable.'
-MULTIBROWSER_DATA=${MULTIBROWSER_DATA:-"$portable_dir/data"}
-export MULTIBROWSER_DATA
+BROWSERLAND_DATA=${BROWSERLAND_DATA:-${MULTIBROWSER_DATA:-"$portable_dir/data"}}
+case "$BROWSERLAND_DATA" in
+    /*) ;;
+    *) fail 'BROWSERLAND_DATA must be an absolute path.' ;;
+esac
+(umask 077; mkdir -p "$BROWSERLAND_DATA") || fail 'Cannot create the profile data directory.'
+[ -d "$BROWSERLAND_DATA" ] && [ -w "$BROWSERLAND_DATA" ] || fail 'The profile data directory is not writable.'
+export BROWSERLAND_DATA
 exec ARCH "-$native_arch" "$executable" "$@"
 '''.replace('UNAME', cmd['uname']).replace('SYSCTL', cmd['sysctl']).replace('ARCH ', cmd['arch'] + ' ').replace('ALERT', cmd['alert'])
 
@@ -48,7 +54,7 @@ def source_inventory():
     return sorted(p for folder in ('src', 'ui') for p in (ROOT / folder).rglob('*') if p.is_file()) + [ROOT / 'package.json']
 
 def open_candidate(arch, version, files):
-    name = f'Multi-Browser-{version}-mac-{arch}-candidate'
+    name = f'Browserland-{version}-mac-{arch}-candidate'
     path = ROOT / 'dist' / (name + '.zip')
     proof = json.loads((ROOT / 'test-results' / f'mac-{arch}-{version}-result.json').read_text())
     if not proof.get('ok') or proof['arch'] != arch or base.digest(path) != proof['sha256']:
@@ -57,7 +63,7 @@ def open_candidate(arch, version, files):
     try:
         if archive.testzip():
             raise ValueError('Input ZIP CRC failure: ' + arch)
-        app = name + '/Multi-Browser.app/'
+        app = name + '/Browserland.app/'
         runtime = name + '/.runtime/'
         allowed = (app, runtime, name + '/licenses/')
         for info in archive.infolist():
@@ -74,15 +80,15 @@ def open_candidate(arch, version, files):
         raise
 
 def unified_plist(version, minimum):
-    return dict(CFBundleExecutable='Multi-Browser', CFBundlePackageType='APPL',
-                CFBundleDisplayName='Multi-Browser', CFBundleName='Multi-Browser',
-                CFBundleIdentifier='net.antoniofradique.multibrowser.launcher', CFBundleIconFile='app-icon.icns',
+    return dict(CFBundleExecutable='Browserland', CFBundlePackageType='APPL',
+                CFBundleDisplayName='Browserland', CFBundleName='Browserland',
+                CFBundleIdentifier='net.antoniofradique.browserland.launcher', CFBundleIconFile='app-icon.icns',
                 CFBundleVersion=version, CFBundleShortVersionString=version,
                 LSMinimumSystemVersion=minimum, NSHighResolutionCapable=True)
 
 def build():
     version = json.loads((ROOT / 'package.json').read_text())['version']
-    name = f'Multi-Browser-{version}-mac-unified-candidate'
+    name = f'Browserland-{version}-mac-unified-candidate'
     destination = ROOT / 'dist' / (name + '.zip')
     if destination.exists():
         raise FileExistsError('Existing package preserved: ' + str(destination))
@@ -94,19 +100,19 @@ def build():
             print('Verified input: ' + arch, flush=True)
         minimums = []
         for archive, input_name, _ in inputs.values():
-            for item in ('/Multi-Browser.app/Contents/Info.plist', '/.runtime/chromium/Chromium.app/Contents/Info.plist'):
+            for item in ('/Browserland.app/Contents/Info.plist', '/.runtime/chromium/Chromium.app/Contents/Info.plist'):
                 minimums.append(plistlib.loads(archive.read(input_name + item)).get('LSMinimumSystemVersion', '13.0'))
         minimum = max(minimums, key=lambda v: tuple(int(n) for n in v.split('.')))
-        prefix = name + '/Multi-Browser.app/Contents/'
+        prefix = name + '/Browserland.app/Contents/'
         launcher = launcher_script().encode('utf-8')
         manifest = dict(version=version, architectures=list(ARCHES), layout='native-runtime-dispatch',
                         minimumMacOS=minimum, launcherSha256=hashlib.sha256(launcher).hexdigest(),
-                        dataDirectory='data beside Multi-Browser.app; MULTIBROWSER_DATA override supported',
+                        dataDirectory='data beside Browserland.app; BROWSERLAND_DATA override supported',
                         executionVerified=False, signed=False, notarized=False,
                         inputs={arch: dict(file=Path(values[2]['path']).name, sha256=values[2]['sha256']) for arch, values in inputs.items()})
-        note = f'''Multi-Browser {version} - one macOS package (Intel + Apple Silicon)
+        note = f'''Browserland {version} - one macOS package (Intel + Apple Silicon)
 
-Extract the complete ZIP into a writable local folder and open Multi-Browser.app.
+Extract the complete ZIP into a writable local folder and open Browserland.app.
 macOS {minimum} or later is required. Native architecture is selected automatically,
 including when Finder/Terminal was running under Rosetta. Rosetta is not required.
 Electron and Chromium are bundled. No Node, Python, Java or browser installation
@@ -129,7 +135,7 @@ https://AntonioFradique.net
             base.add_bytes(output, prefix + 'Info.plist', plistlib.dumps(unified_plist(version, minimum)))
             base.add_bytes(output, prefix + 'Resources/app-icon.icns', (ROOT/'ui/assets/app-icon.icns').read_bytes())
             base.add_bytes(output, prefix + 'PkgInfo', b'APPL????')
-            base.add_bytes(output, prefix + 'MacOS/Multi-Browser', launcher, 0o100755)
+            base.add_bytes(output, prefix + 'MacOS/Browserland', launcher, 0o100755)
             base.add_bytes(output, name + '/READ-ME-FIRST.txt', note.encode('utf-8'))
             base.add_bytes(output, name + '/package-verification.json', json.dumps(manifest, indent=2).encode())
             for arch, (archive, input_name, _) in inputs.items():
@@ -144,9 +150,9 @@ https://AntonioFradique.net
         with base.checked_archive(destination) as output:
             if output.testzip():
                 raise ValueError('Output ZIP CRC failure')
-            if output.read(prefix + 'MacOS/Multi-Browser') != launcher:
+            if output.read(prefix + 'MacOS/Browserland') != launcher:
                 raise ValueError('Launcher mismatch')
-            if not (output.getinfo(prefix + 'MacOS/Multi-Browser').external_attr >> 16) & 0o111:
+            if not (output.getinfo(prefix + 'MacOS/Browserland').external_attr >> 16) & 0o111:
                 raise ValueError('Launcher not executable')
             for arch, (archive, input_name, _) in inputs.items():
                 runtime_prefix = prefix + 'Resources/runtimes/' + arch + '/'
@@ -158,7 +164,7 @@ https://AntonioFradique.net
                     if output.read(target) != archive.read(info) or output.getinfo(target).external_attr != info.external_attr:
                         raise ValueError('Runtime content/permission mismatch: ' + target)
                     matched += 1
-                base.executable_arch(output, runtime_prefix + 'Multi-Browser.app/Contents/MacOS/Electron', arch)
+                base.executable_arch(output, runtime_prefix + 'Browserland.app/Contents/MacOS/Electron', arch)
                 base.executable_arch(output, runtime_prefix + '.runtime/chromium/Chromium.app/Contents/MacOS/Chromium', arch)
             links = sum(stat.S_ISLNK(info.external_attr >> 16) for info in output.infolist())
             if any('/data/' in n or '/test-results/' in n for n in output.namelist()):

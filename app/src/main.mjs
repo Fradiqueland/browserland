@@ -1,3 +1,4 @@
+import {environmentValue,APPLICATION_NAME,APPLICATION_ID,encryptionApplicationName,isBundleFormat} from './branding.mjs';
 import {authorSocialURL} from './author-social.mjs';
 import {startupProgress} from './startup-progress.mjs';
 import {ProfileTasks} from './profile-tasks.mjs';
@@ -18,13 +19,13 @@ import {bounded,closeWindow,closeWebContents,openProfileBatch,settleOperations} 
 import {NativeBrowsers} from './native-browser.mjs';
 import {CLOSE_STANDARD} from './standard-browser.mjs';
 import {pageContextItems,editingItems,webLink} from './page-context-menu.mjs';
-import {Store,validateProfile,safeURL,text,encryptBundle,decryptBundle,configurationBundle,importProfileConfiguration,cookieForImport,startupURLs,clearPlan,matchesProxyAuthority} from './core.mjs';
+import {Store,validateProfile,safeURL,text,encryptBundle,decryptBundle,configurationBundle,configurationInputs,importProfileConfiguration,cookieForImport,startupURLs,clearPlan,matchesProxyAuthority} from './core.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const applicationVersion=JSON.parse(readFileSync(join(root,'package.json'),'utf8')).version;
-const dataRoot=applicationDataDirectory({appRoot:root,packaged:app.isPackaged,override:process.env.MULTIBROWSER_DATA});
-mkdirSync(dataRoot,{recursive:true});mkdirSync(join(dataRoot,'engine'),{recursive:true});app.setPath('userData',join(dataRoot,'engine'));app.setName('Multi-Browser');if(process.platform==='win32')app.setAppUserModelId('net.antoniofradique.multibrowser');
+const dataRoot=applicationDataDirectory({appRoot:root,packaged:app.isPackaged,override:environmentValue('DATA')});
+mkdirSync(dataRoot,{recursive:true});mkdirSync(join(dataRoot,'engine'),{recursive:true});app.setPath('userData',join(dataRoot,'engine'));app.setName(encryptionApplicationName(dataRoot));app.setAboutPanelOptions({applicationName:APPLICATION_NAME,applicationVersion});if(process.platform==='win32')app.setAppUserModelId(APPLICATION_ID);
 const isTest=process.argv.includes('--self-test');
-if(isTest&&!process.env.MULTIBROWSER_DATA)throw Error('O teste exige uma pasta MULTIBROWSER_DATA isolada. Utilize scripts/verify-desktop.ps1.');
+if(isTest&&!environmentValue('DATA'))throw Error('O teste exige uma pasta BROWSERLAND_DATA isolada. Utilize scripts/verify-desktop.ps1.');
 const openingProfiles=new Map();
 const pendingImports=new Map();
 const importJobs=new Set();
@@ -59,7 +60,7 @@ async function sessionFor(p){
  const ses=session.fromPath(profilePath(p.id));
  await bounded(ses.setProxy(p.proxy?{mode:'fixed_servers',proxyRules:p.proxy,proxyBypassRules:'<-loopback>'}:{mode:'direct'}),'configurar proxy de '+p.name,10000);
  trace('Proxy configurado: '+p.name);
- const ua=p.userAgent||session.defaultSession.getUserAgent().replace(/ Multi-Browser\/[^\s]+/g,'').replace(/ Electron\/[^\s]+/g,'');
+ const ua=p.userAgent||session.defaultSession.getUserAgent().replace(/ (?:Browserland|Multi-Browser)\/[^\s]+/g,'').replace(/ Electron\/[^\s]+/g,'');
  ses.setUserAgent(ua,p.locale);await bounded(ses.closeAllConnections(),'fechar ligacoes antigas de '+p.name,10000);
  trace('Ligacoes preparadas: '+p.name);
  const permissionChoices=new Map();
@@ -203,7 +204,7 @@ async function openProfileInner(id,options={}){
  const configured=store.get(id);if(configured.engine&&configured.engine!=='embedded'){const record=await nativeBrowsers.open(configured,options);configured.lastOpened=new Date().toISOString();configured.useCount=(configured.useCount||0)+1;store.save();broadcast();return record;}
  if(browsers.has(id)){const b=browsers.get(id);if(!isTest){b.window.show();b.window.focus();}return b;}
  const p=store.get(id);await sessionFor(p);
- const window=createShell('browser.html',{width:p.width,height:p.height,title:p.name+' · Multi-Browser',minWidth:320,minHeight:240});
+ const window=createShell('browser.html',{width:p.width,height:p.height,title:p.name+' · Browserland',minWidth:320,minHeight:240});
  const record={profile:p,window,tabs:[],closedTabs:[],pendingContents:new Set(),activeId:null};browsers.set(id,record);
  window.on('resize',()=>resize(record));for(const name of ['enter-full-screen','leave-full-screen'])window.on(name,()=>{resize(record);update(record);});window.on('close',()=>saveTabState(record));
  window.webContents.on('did-finish-load',()=>update(record));
@@ -267,22 +268,22 @@ function saveSecret(profile,password){
  profile.proxySecret=safeStorage.encryptString(String(password)).toString('base64');
 }
 async function pickSave(value,name,encrypted=false){
- const {canceled,filePath}=await dialog.showSaveDialog(manager,{title:uiText(encrypted?'Exportação encriptada':'Exportar configurações'),defaultPath:name,filters:[{name:name.endsWith('.csv')?'CSV':'Multi-Browser',extensions:[name.endsWith('.csv')?'csv':'json']}]});
+ const {canceled,filePath}=await dialog.showSaveDialog(manager,{title:uiText(encrypted?'Exportação encriptada':'Exportar configurações'),defaultPath:name,filters:[{name:name.endsWith('.csv')?'CSV':'Browserland',extensions:[name.endsWith('.csv')?'csv':'json']}]});
  if(canceled)return {cancelled:true};
  writeFileSync(filePath,value,{mode:0o600});return {saved:true};
 }
 async function exportProfiles(data){
  const profiles=data.id?[store.get(data.id)]:selectedProfiles(store,data.ids);
  const exportedGroups=groupRecords(store.state,data.id||data.ids?[...new Set(profiles.flatMap(profileGroups))]:store.state.groups);
- if(data.format==='csv')return pickSave(csvText(profiles,exportedGroups),'multi-browser-perfis.csv');
- if(!data.cookies)return pickSave(JSON.stringify(configurationBundle(profiles,exportedGroups),null,2),'multi-browser-perfis.json');
+ if(data.format==='csv')return pickSave(csvText(profiles,exportedGroups),'browserland-perfis.csv');
+ if(!data.cookies)return pickSave(JSON.stringify(configurationBundle(profiles,exportedGroups),null,2),'browserland-perfis.json');
  if(profiles.length!==1)throw Error('Selecione um perfil para partilhar cookies.');
  const p=profiles[0];failIfRunning(p.id);
  const cookies=p.engine&&p.engine!=='embedded'?await nativeBrowsers.cookies(p):await (await sessionFor(p)).cookies.get({});
  const siteStorage=p.engine&&p.engine!=='embedded'?await nativeBrowsers.exportStorage(p):undefined;
- const encrypted=encryptBundle({format:'multi-browser-session',version:cookies.some(c=>c.partitionKey)?2:1,profile:configurationBundle([p]).profiles[0],groups:exportedGroups,cookies,siteStorage},data.password);
+ const encrypted=encryptBundle({format:'browserland-session',version:cookies.some(c=>c.partitionKey)?2:1,profile:configurationBundle([p]).profiles[0],groups:exportedGroups,cookies,siteStorage},data.password);
  if(Buffer.byteLength(encrypted)>30*1024*1024)throw Error('Sessao demasiado grande para partilha (limite: 30 MiB).');
- return pickSave(encrypted,'multi-browser-sessao-encriptada.json',true);
+ return pickSave(encrypted,'browserland-sessao-encriptada.json',true);
 }
 function importProfiles(data){
  if(quitting)return Promise.reject(Error('A aplicacao esta a encerrar.'));
@@ -306,15 +307,12 @@ async function performProfileImport(data){
   }
  }
  let bundle=JSON.parse(raw);
- if(bundle.format==='multi-browser-encrypted'){
+ if(isBundleFormat(bundle.format,'encrypted')){
   if(!data.password){pendingImports.clear();token=randomUUID();pendingImports.set(token,{raw,expires:Date.now()+300000});return {needsPassword:true,token};}
   bundle=decryptBundle(raw,data.password);
  }
  if(token)pendingImports.delete(token);
- let inputs;
- if(bundle.format==='multi-browser-profiles'&&[1,2].includes(bundle.version)&&Array.isArray(bundle.profiles))inputs=bundle.profiles;
- else if(bundle.format==='multi-browser-session'&&[1,2].includes(bundle.version)&&Array.isArray(bundle.cookies))inputs=[bundle.profile];
- else throw Error('Ficheiro de importação inválido.');
+ const inputs=configurationInputs(bundle);
  if(inputs.length>1000||store.state.profiles.length+inputs.length>1000)throw Error('Limite de 1000 perfis.');
  const clean=inputs.map(importProfileConfiguration),importedGroups=validateGroupRecords(bundle.groups??[]);
  if((bundle.cookies||bundle.siteStorage)&&clean.some(p=>p.launchMode==='plain'))throw Error('Neste perfil, utilize os menus do navegador para gerir cookies e sessões.');
@@ -368,7 +366,7 @@ const actions={
  clearDownloads:()=>{store.state.downloads=store.state.downloads.filter(d=>downloads.has(d.id));store.save();broadcast();return state();},
 
  pin:d=>{const p=store.get(d.id);p.pinned=!p.pinned;store.save();broadcast();return publicProfile(p);},
- defaultUserAgent:()=>session.defaultSession.getUserAgent().replace(/ Electron\/[^\s]+/g,'').replace(/ Multi-Browser\/[^\s]+/g,''),
+ defaultUserAgent:()=>session.defaultSession.getUserAgent().replace(/ Electron\/[^\s]+/g,'').replace(/ (?:Browserland|Multi-Browser)\/[^\s]+/g,''),
  sampleCSV:()=>pickSave(csvText([validateProfile({name:'Exemplo',notes:'Descricao do perfil',group:'Trabalho',proxy:'',locale:'pt-PT'})]),'modelo-perfis.csv'),
  deleteSelected:async d=>{
   const profiles=selectedProfiles(store,d.ids);for(const p of profiles)failIfRunning(p.id);
@@ -421,7 +419,7 @@ const actions={
  bookmarks:()=>store.state.bookmarks,
  bookmark:d=>{const url=safeURL(d.url);if(url==='about:blank')throw Error('Este separador não tem endereço.');store.get(d.profileId);if(!store.state.bookmarks.some(b=>b.profileId===d.profileId&&b.url===url))store.state.bookmarks.push({id:randomUUID(),profileId:d.profileId,url,title:text(d.title,200),at:new Date().toISOString()});store.save();broadcast();return {saved:true};},
  removeBookmark:d=>{store.state.bookmarks=store.state.bookmarks.filter(b=>b.id!==d.id);store.save();broadcast();return state();},
- exportGroups:d=>{const names=d.names??store.state.groups;if(!Array.isArray(names)||names.some(name=>!store.state.groups.includes(name)))throw Error('Seleção de grupos inválida.');const groups=groupRecords(store.state,names);return d.format==='json'?pickSave(JSON.stringify(configurationBundle([],groups),null,2),'multi-browser-grupos.json'):pickSave(csvText([],groups),'multi-browser-grupos.csv');},
+ exportGroups:d=>{const names=d.names??store.state.groups;if(!Array.isArray(names)||names.some(name=>!store.state.groups.includes(name)))throw Error('Seleção de grupos inválida.');const groups=groupRecords(store.state,names);return d.format==='json'?pickSave(JSON.stringify(configurationBundle([],groups),null,2),'browserland-grupos.json'):pickSave(csvText([],groups),'browserland-grupos.csv');},
  export:exportProfiles, import:importProfiles,
  extension:async d=>{const p=store.get(d.id);if(p.engine&&p.engine!=='embedded'){await nativeBrowsers.page(p,'extensions');return {native:true,opened:true};}failIfRunning(d.id);const result=await dialog.showOpenDialog(manager,{title:uiText('Selecionar extensão descompactada com manifest.json'),properties:['openDirectory']});if(result.canceled)return {cancelled:true};const ses=await sessionFor(p),installed=installPortableExtension(dataRoot,p.id,result.filePaths[0]);let ext;try{if(p.extensions.some(e=>e.id===installed.id))throw Error('Extension already added to this profile.');ext=await ses.extensions.loadExtension(installed.path,{allowFileAccess:false});p.extensions.push({id:ext.id,name:ext.name,directory:installed.directory});store.save();}catch(error){p.extensions=p.extensions.filter(e=>e.directory!==installed.directory);if(ext&&!p.extensions.some(e=>e.id===ext.id))ses.extensions.removeExtension(ext.id);removePortableExtension(dataRoot,p.id,installed);throw error;}broadcast();return {name:ext.name};},
  removeExtension:async d=>{failIfRunning(d.id);const p=store.get(d.id),ses=await sessionFor(p);const extension=p.extensions.find(x=>x.id===d.extensionId);if(!extension)throw Error('Extension not found.');ses.extensions.removeExtension(d.extensionId);removePortableExtension(dataRoot,p.id,extension);p.extensions=p.extensions.filter(x=>x.id!==d.extensionId);store.save();broadcast();return state();},
@@ -452,7 +450,7 @@ for(const name of ['delete','deleteSelected','clear','clearSelectedData','extens
   return profileTasks.run(profiles.map(p=>p.id),()=>action(data));
  };
 }
-ipcMain.handle('multi-browser',async(event,action,data={})=>{
+ipcMain.handle('browserland',async(event,action,data={})=>{
  if(!trusted.has(event.sender.id)||event.senderFrame!==event.sender.mainFrame)throw Error('Origem não autorizada.');
  if(typeof action!=='string'||!data||typeof data!=='object')throw Error('Pedido inválido.');
  if(quitting)throw Error('A aplicacao esta a encerrar.');
@@ -519,7 +517,7 @@ app.whenReady().then(async()=>{
  const startup=await startupProgress({root,isTest});startup.update(45,'Loading saved settings');
  if(process.platform==='darwin')app.dock?.setIcon(join(root,'ui','assets','app-icon.png'));
  store=new Store(dataRoot);for(const d of store.state.downloads||[])if(['progressing','paused'].includes(d.state))d.state='interrupted';nativeTheme.themeSource=store.state.settings.theme;
- Menu.setApplicationMenu(process.platform==='darwin'?Menu.buildFromTemplate([{label:'Multi-Browser',submenu:[{role:'about'},{type:'separator'},{role:'hide'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{label:'Quit Multi-Browser',accelerator:'Command+Q',click:()=>manager?.close()}]},{role:'editMenu'},{role:'windowMenu'}]):null);startup.update(80,'Opening your workspace');manager=createShell('index.html',{show:false,title:'Multi-Browser'});
+ Menu.setApplicationMenu(process.platform==='darwin'?Menu.buildFromTemplate([{label:'Browserland',submenu:[{role:'about',label:'About Browserland'},{type:'separator'},{role:'hide',label:'Hide Browserland'},{role:'hideOthers'},{role:'unhide'},{type:'separator'},{label:'Quit Browserland',accelerator:'Command+Q',click:()=>manager?.close()}]},{role:'editMenu'},{role:'windowMenu'}]):null);startup.update(80,'Opening your workspace');manager=createShell('index.html',{show:false,title:'Browserland'});
  manager.on('close',event=>{
   if(closingManager)return;event.preventDefault();
   if(quitting||quitPrompt)return;
