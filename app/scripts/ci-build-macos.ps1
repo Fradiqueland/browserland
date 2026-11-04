@@ -63,14 +63,42 @@ if ((Get-FileHash -LiteralPath $licensePath -Algorithm SHA256).Hash.ToLowerInvar
     throw 'Pinned Chromium licence checksum mismatch.'
 }
 
-$gitPath = (Get-Command git -CommandType Application).Source
+$gitCommand = Get-Command git -CommandType Application | Select-Object -First 1
+$gitPath = [string]$gitCommand.Source
 $gitRoot = Split-Path -Parent (Split-Path -Parent $gitPath)
-$gitBash = Join-Path $gitRoot 'bin/bash.exe'
-if (-not (Test-Path -LiteralPath $gitBash)) { throw 'Git Bash is required by the Mac launcher tests.' }
+$gitBash = @('usr/bin/bash.exe', 'bin/bash.exe') |
+    ForEach-Object { Join-Path $gitRoot $_ } |
+    Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+    Select-Object -First 1
+if (-not $gitBash) { throw 'Git Bash is required by the Mac launcher tests.' }
+$gitBash = [string](Get-Item -LiteralPath $gitBash).FullName
 $env:BROWSERLAND_TEST_BASH = $gitBash
+$env:MULTIBROWSER_TEST_BASH = $gitBash
 
 Push-Location $appRoot
 try {
+    @'
+from pathlib import Path
+import importlib.util, os, subprocess
+configured = os.environ.get('BROWSERLAND_TEST_BASH')
+print('MAC_TEST_BASH_ENV:', repr(configured), flush=True)
+if not configured:
+    raise RuntimeError('BROWSERLAND_TEST_BASH was not inherited by Python')
+shell = Path(configured).resolve(strict=True)
+print('MAC_TEST_BASH_PATH:', str(shell), 'is_file=', shell.is_file(), flush=True)
+if not shell.is_file():
+    raise RuntimeError('Configured Git Bash is not a file')
+version = subprocess.run([str(shell), '--version'], check=True, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, timeout=15)
+print(version.stdout.splitlines()[0], flush=True)
+spec = importlib.util.spec_from_file_location('ci_mac_launcher_test', Path('tests/test_macos_unified.py'))
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+print('MAC_TEST_IMPORTED_BASH:', repr(str(module.BASH)), flush=True)
+assert module.BASH.resolve(strict=True) == shell, 'Launcher test resolved a different shell'
+print('MAC_TEST_SHELL_VERIFIED', flush=True)
+'@ | & python -
+    if ($LASTEXITCODE -ne 0) { throw 'Python cannot launch the configured Git Bash executable.' }
     Invoke-BuildStep 'python' @('-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_macos_*.py', '-v')
     @'
 from pathlib import Path
