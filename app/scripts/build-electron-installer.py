@@ -104,6 +104,9 @@ def main():
       while chunk:=incoming.read(1024*1024):outgoing.write(chunk)
     if file.stat().st_size!=item['Size'] or digest(file)!=item['SHA256']:raise ValueError('Application file changed: '+name)
    entries=manifest['Files']
+ # Both a fresh portable build and a verified setup update must expose the same
+ # complete byte manifest to the independent installer payload verifier.
+ (WORK/('payload-'+VERSION+'.json')).write_text(json.dumps(entries,indent=2))
  include=WORK/('payload-'+VERSION+'.nsh');payload_include(entries,stage,include)
  base=[str(compiler),'/V3','/INPUTCHARSET','UTF8','/DMB_VERSION='+VERSION,'/DMB_ICON='+str(ROOT/'ui/assets/app-icon.ico'),'/DMB_SIZE_KB='+str(sum(item['Size'] for item in entries)//1024)]
  print('Building branded NSIS Setup.exe...',flush=True)
