@@ -34,7 +34,8 @@ class PublishReleaseTests(unittest.TestCase):
             (folder / (proof + '-0.22.1.json')).write_text(json.dumps({'ok': True, key: hashlib.sha256(data).hexdigest()}))
         for folder, name in [(self.windows, 'electron-payload'), (self.windows, 'ci-windows-verification'), (self.mac, 'mac-ci')]:
             (folder / (name + '-0.22.1.json')).write_text(json.dumps({'ok': True, 'nativeFixtureVerified': True,
-                'profileDataPreserved': True, 'iconResourcesVerified': True, 'structuralValidation': True, 'commit': 'a' * 40}))
+                'profileDataPreserved': True, 'iconResourcesVerified': True, 'shortcutIconsVerified': True,
+                'pinnedShortcutsVerified': True, 'structuralValidation': True, 'commit': 'a' * 40}))
         self.calls = []
         self.existing = False
         self.incomplete = False
@@ -82,6 +83,18 @@ class PublishReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Existing release preserved'):
             module.publish(self.source)
         self.assertFalse(any(args[:2] == ('release', 'create') for args in self.calls))
+
+    def test_unverified_shortcut_migration_is_never_published(self):
+        path = self.windows / 'ci-windows-verification-0.22.1.json'
+        original = json.loads(path.read_text())
+        for flag in ('shortcutIconsVerified', 'pinnedShortcutsVerified'):
+            with self.subTest(flag=flag):
+                data = dict(original)
+                data.pop(flag)
+                path.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, 'Native Windows validation is incomplete'):
+                    module.publish(self.source)
+                self.assertEqual(self.calls, [])
 
     def test_incomplete_upload_stays_draft(self):
         self.incomplete = True

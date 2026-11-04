@@ -52,7 +52,9 @@ def publish(source):
     # Packages must be the exact artifacts described by the build receipts.
     proof_files = {p.name: json.loads(p.read_text(encoding='utf-8-sig')) for p in reports}
     native = proof_files[f'ci-windows-verification-{version}.json']
-    if any(native.get(flag) is not True for flag in ('nativeFixtureVerified', 'profileDataPreserved', 'iconResourcesVerified')):
+    if any(native.get(flag) is not True for flag in ('nativeFixtureVerified', 'profileDataPreserved',
+                                                    'iconResourcesVerified', 'shortcutIconsVerified',
+                                                    'pinnedShortcutsVerified')):
         raise ValueError('Native Windows validation is incomplete')
     mac = proof_files[f'mac-ci-{version}.json']
     if mac.get('structuralValidation') is not True or mac.get('commit') != commit:
@@ -88,9 +90,10 @@ def publish(source):
             archive.write(path, path.parent.name + '/' + path.name)
     notes = out / 'release-notes.md'
     notes.write_text(
-        f'Browserland {version} replaces the application icon with the circular blue design.\n\n'
+        f'Browserland {version} configures the circular blue Windows icons automatically during installation and updates.\n\n'
         'Windows: use Windows-Setup.exe for installation and Desktop/Start menu shortcuts, '
-        'or Windows-Portable.exe for portable use. Existing profile data is preserved.\n\n'
+        'or Windows-Portable.exe for portable use. Setup uses a versioned icon for Desktop, Start menu and installed-app entries, '
+        'and refreshes existing Browserland taskbar shortcuts. Existing profile data is preserved.\n\n'
         'Mac: the DMG and Mac-Portable.zip contain both Intel and Apple Silicon runtimes. '
         'Keep the existing data folder when updating.\n\n'
         'The packages include Electron and Chromium. No separate runtime installation is required.\n\n'

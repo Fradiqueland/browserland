@@ -8,6 +8,10 @@ on:
       - app/package.json
       - app/ui/assets/app-icon.*
       - app/scripts/ci-*
+      - app/scripts/windows-installer-nsis.nsi
+      - app/scripts/build-electron-installer.py
+      - app/scripts/verify-ci-windows.py
+      - app/tests/test_ci_publish_release.py
       - .github/workflows/build-release.yml
 
 permissions:

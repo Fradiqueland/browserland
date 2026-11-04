@@ -104,8 +104,7 @@ def main():
       while chunk:=incoming.read(1024*1024):outgoing.write(chunk)
     if file.stat().st_size!=item['Size'] or digest(file)!=item['SHA256']:raise ValueError('Application file changed: '+name)
    entries=manifest['Files']
- # Both a fresh portable build and a verified setup update must expose the same
- # complete byte manifest to the independent installer payload verifier.
+ # Both source paths expose the complete manifest to the independent verifier.
  (WORK/('payload-'+VERSION+'.json')).write_text(json.dumps(entries,indent=2))
  include=WORK/('payload-'+VERSION+'.nsh');payload_include(entries,stage,include)
  base=[str(compiler),'/V3','/INPUTCHARSET','UTF8','/DMB_VERSION='+VERSION,'/DMB_ICON='+str(ROOT/'ui/assets/app-icon.ico'),'/DMB_SIZE_KB='+str(sum(item['Size'] for item in entries)//1024)]
@@ -114,7 +113,9 @@ def main():
  # Same installer/uninstaller instructions, with a tiny payload and isolated
  # shortcuts/registry, so native testing cannot affect the user's real app.
  fixture=WORK/'test-payload';fixture.mkdir(exist_ok=True);(fixture/'Browserland.exe').write_bytes(b'controlled installer fixture; never launched')
- fake=[{'Path':'Browserland.exe'}];test_include=WORK/'test-payload.nsh';payload_include(fake,fixture,test_include)
+ fixture_icon=fixture/'resources/app/ui/assets/app-icon.ico';fixture_icon.parent.mkdir(parents=True,exist_ok=True)
+ shutil.copy2(ROOT/'ui/assets/app-icon.ico',fixture_icon)
+ fake=[{'Path':'Browserland.exe'},{'Path':'resources/app/ui/assets/app-icon.ico'}];test_include=WORK/'test-payload.nsh';payload_include(fake,fixture,test_include)
  test_exe=WORK/'Test-Setup.exe';test_id=uuid.uuid4().hex
  subprocess.run(base+['/DMB_TEST=1','/DMB_TEST_ID='+test_id,'/DMB_PAYLOAD_INCLUDE='+str(test_include),'/DMB_OUTPUT='+str(test_exe),str(ROOT/'scripts/windows-installer-nsis.nsi')],check=True,timeout=30)
  result=dict(version=VERSION,file=str(output),bytes=output.stat().st_size,sha256=digest(output),format='NSIS Setup.exe',application='Electron with bundled full Chromium',applicationArchitecture='x64',installerArchitecture='x86-unicode',frameworkVersion='3.13',scope='current-user',defaultDirectory=r'%LOCALAPPDATA%\Programs\Browserland',desktopShortcut=True,startMenuShortcut=True,uninstallEntry=True,externalRuntimesRequired=False,requiresWindowsInstallerService=False,payloadFiles=len(entries),dataPreservedOnUpdate=True,dataPreservedOnUninstall=True,uninstallUsesRecursiveDelete=False,sourcePortableSHA256=proof['sha256'],signed=False,nativeExecutionTestPending=True,testSetup=str(test_exe),testId=test_id)

@@ -39,6 +39,10 @@ function Invoke-BuildProcess([string]$Label, [string]$Executable, [string[]]$Arg
     } finally { $process.Dispose() }
 }
 
+# Fail early if native shortcut installation or migration regresses.
+Invoke-BuildProcess 'prepare-nsis' $python @('scripts/prepare-nsis-toolchain.py')
+Invoke-BuildProcess 'verify-shortcuts-early' $python @('scripts/ci-test-windows-shortcuts.py') 600
+
 # No historical Windows snapshot pin is included in the source repository.
 # Resolve the official snapshot once, then record and pass that exact revision.
 $revisionOrigin = 'explicit-input'
@@ -55,7 +59,6 @@ if (-not $ChromiumRevision) {
 Invoke-BuildProcess 'prepare-electron' $pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'runtime.ps1'))
 Invoke-BuildProcess 'prepare-chromium' $pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'prepare-chromium.ps1'), '-Revision', $ChromiumRevision)
 Invoke-BuildProcess 'prepare-go' $python @('scripts/prepare-portable-go.py')
-Invoke-BuildProcess 'prepare-nsis' $python @('scripts/prepare-nsis-toolchain.py')
 Invoke-BuildProcess 'build-portable' $python @('scripts/build-windows-single-file.py') 1800
 Invoke-BuildProcess 'build-installer' $python @('scripts/build-electron-installer.py') 1200
 

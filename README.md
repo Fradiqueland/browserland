@@ -4,9 +4,9 @@ Browser profile manager for Windows and macOS, created by Antonio Fradique.
 
 Source repository: [Fradiqueland/browserland](https://github.com/Fradiqueland/browserland).
 
-## Browserland 0.22.1
+## Browserland 0.22.2
 
-Version 0.22.1 applies the circular blue icon to Windows and Mac packages. The automated build publishes packages only after the Windows installer and Mac package checks pass. Downloads appear on [GitHub Releases](https://github.com/Fradiqueland/browserland/releases).
+Version 0.22.2 configures the circular blue Windows icons automatically on installation and update. Desktop and Start menu shortcuts and the installed-app entry use a versioned icon file, and existing taskbar shortcuts targeting this installation are refreshed without changing other apps or profile data. The automated build publishes packages only after the Windows installer and Mac package checks pass. Downloads appear on [GitHub Releases](https://github.com/Fradiqueland/browserland/releases).
 
 Browserland is the new name of the application. The interface, application icons, menus, exported files, launchers and current Windows/Mac packages use the new identity.
 
@@ -27,7 +27,7 @@ On macOS, keep the existing `data` directory beside `Browserland.app` when repla
 
 Old configuration files and encrypted exports remain readable. New exports use `browserland-*` format identifiers. `BROWSERLAND_*` environment variables take precedence, with the old variable names accepted as compatibility aliases. Existing macOS workspaces retain the internal encryption identity required to access their prior Keychain data. Compatibility identifiers and immutable historical archive names are intentionally retained in migration code and historical reports.
 
-The 0.22.1 build produces `Browserland-0.22.1-Windows-Setup.exe`, `Browserland-0.22.1-Windows-Portable.exe`, `Browserland-0.22.1-mac.dmg` and `Browserland-0.22.1-Mac-Portable.zip`. Distribution binaries and private profile data are excluded from this source repository.
+The 0.22.2 build produces `Browserland-0.22.2-Windows-Setup.exe`, `Browserland-0.22.2-Windows-Portable.exe`, `Browserland-0.22.2-mac.dmg` and `Browserland-0.22.2-Mac-Portable.zip`. Distribution binaries and private profile data are excluded from this source repository.
 
 ## Development and verification
 
@@ -47,7 +47,7 @@ Packaging entry points:
 - `scripts/update-portable-sources.py --mac <verified-prior-mac-archive>` updates the portable Mac package while preserving native runtime bytes and symbolic links.
 - The remaining Windows portable/MSI and Mac bundle builders are development alternatives and may require locally prepared toolchains.
 
-The earlier 0.22.0 `npm test` run passed 99 tests; three Windows junction-dependent tests could not create their fixtures because the sandbox rejected the required operation (`EPERM`). The three portable-package rebrand tests also passed. All 391 Windows payload files and 2,660 Mac manifest entries were verified, including 38 Mac symbolic links. Detailed historical checks and package hashes are recorded in [the 0.22.0 release notes](app/docs/Browserland-0.22.0.md). The 0.22.1 workflow records new results and tests native Windows installation using an isolated fixture. Real macOS/Keychain execution, signing and notarization remain unverified.
+The earlier 0.22.0 `npm test` run passed 99 tests; three Windows junction-dependent tests could not create their fixtures because the sandbox rejected the required operation (`EPERM`). The three portable-package rebrand tests also passed. All 391 Windows payload files and 2,660 Mac manifest entries were verified, including 38 Mac symbolic links. Detailed historical checks and package hashes are recorded in [the 0.22.0 release notes](app/docs/Browserland-0.22.0.md). The workflow records current results and tests native Windows installation and updates using isolated shortcuts, pinned links, registry entries and profile fixtures. Publication requires icon and shortcut migration checks to pass. Real macOS/Keychain execution, signing and notarization remain unverified.
 
 The optional `rea` submodule pins [morluto/rea](https://github.com/morluto/rea). It is a development tool and is not required to run Browserland.
 
@@ -56,3 +56,4 @@ The optional `rea` submodule pins [morluto/rea](https://github.com/morluto/rea).
 The application declares `UNLICENSED`; a public source backup does not grant an open-source license. Electron, Chromium, REA and other third-party components retain their own licenses and notices.
 
 Created by **Antonio Fradique** - [More products](https://AntonioFradique.net).
+
