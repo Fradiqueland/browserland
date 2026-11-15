@@ -6,7 +6,7 @@ import {decryptBundle} from './core.mjs';
 import {session,BrowserWindow} from 'electron';
 import {extensionPath} from './portable-extensions.mjs';
 import {createServer} from 'node:http';
-import {once} from 'node:events';
+import {waitForDocument} from './document-ready.mjs';
 import {writeFileSync,mkdirSync,readFileSync,renameSync,cpSync,existsSync} from 'node:fs';
 import {join,dirname,resolve} from 'node:path';
 import {bounded,closeWindow,closeHTTPServer,until} from './operations.mjs';
@@ -17,7 +17,7 @@ export async function runSmoke({app,store,manager,sessionFor,openProfile,browser
  const results=[];const check=(name,ok)=>{assert.ok(ok,name);results.push({name,ok:true});trace('PASS: '+name);};
  const server=createServer((_req,res)=>{if(_req.url==='/portable-worker.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end("let blocked=false;try{new OffscreenCanvas(1,1).getContext('2d').getImageData(0,0,1,1)}catch{blocked=true}const first={blocked,language:navigator.language,zone:Intl.DateTimeFormat().resolvedOptions().timeZone,node:typeof require,ipc:typeof self.desktop};self.addEventListener('install',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.put('/offline-probe',new Response('portable-cache-ok'))).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('message',e=>e.waitUntil(caches.open('portable-worker-cache').then(c=>c.match('/offline-probe')).then(r=>r.text()).then(cache=>e.ports[0].postMessage({...first,cache}))));");return;}if(_req.url==='/download'){res.writeHead(200,{'Content-Type':'application/octet-stream','Content-Disposition':'attachment; filename="teste-download.txt"','Content-Length':4096});res.end(Buffer.alloc(4096,65));return;}res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><title>Teste de isolamento</title><h1>Browserland local</h1><a href="/next" target="_blank">Abrir separador</a>');});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port+'/';
- async function loaded(wc){if(wc.getURL()&&!wc.isLoading())return;await Promise.race([once(wc,'did-finish-load'),new Promise((_,reject)=>setTimeout(()=>reject(Error('Pagina nao carregou')),15000))]);}
+ const loaded=waitForDocument;
  try{
  await loaded(manager.webContents);
  await runAuthorSocialSmoke({manager,store,actions,dataRoot,check});
