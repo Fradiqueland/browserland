@@ -27,7 +27,8 @@ class PublishReleaseTests(unittest.TestCase):
         pairs = [('Windows-Setup.exe', self.windows, 'electron-installer', 'sha256'),
                  ('Windows-Portable.exe', self.windows, 'windows-single-file', 'sha256'),
                  ('mac.dmg', self.mac, 'mac-dmg', 'sha256'),
-                 ('Mac-Portable.zip', self.mac, 'mac-portable', 'zipSHA256')]
+                 ('Mac-Portable.zip', self.mac, 'mac-portable', 'zipSHA256'),
+                 ('Mac-Universal.pkg', self.mac, 'mac-installer', 'sha256')]
         for index, (suffix, folder, proof, key) in enumerate(pairs):
             data = bytes([index + 1]) * 1_000_001
             (self.source / ('Browserland-0.22.1-' + suffix)).write_bytes(data)
@@ -36,6 +37,12 @@ class PublishReleaseTests(unittest.TestCase):
             (folder / (name + '-0.22.1.json')).write_text(json.dumps({'ok': True, 'nativeFixtureVerified': True,
                 'profileDataPreserved': True, 'iconResourcesVerified': True, 'shortcutIconsVerified': True,
                 'pinnedShortcutsVerified': True, 'structuralValidation': True, 'commit': 'a' * 40}))
+        pkg_proof = self.mac / 'mac-installer-0.22.1.json'
+        pkg_data = json.loads(pkg_proof.read_text())
+        pkg_data.update(commit='a' * 40, architectures=['x64', 'arm64'],
+                        payloadBytesAndLinksVerified=True, nativeInstallationVerified=True,
+                        nativeUpgradeVerified=True, profileDataPreserved=True, tutorialMenuVerified=True)
+        pkg_proof.write_text(json.dumps(pkg_data))
         self.calls = []
         self.existing = False
         self.incomplete = False
@@ -63,7 +70,20 @@ class PublishReleaseTests(unittest.TestCase):
         writes = [args[1] for args in self.calls if args[0] == 'release' and args[1] in ('create', 'edit')]
         self.assertEqual(writes, ['create', 'edit'])
         self.assertIn('--draft', next(args for args in self.calls if args[:2] == ('release', 'create')))
-        self.assertEqual(len(self.assets), 6)
+        self.assertEqual(len(self.assets), 7)
+
+    def test_unverified_mac_installer_cannot_be_published(self):
+        path = self.mac / 'mac-installer-0.22.1.json'
+        original = json.loads(path.read_text())
+        for flag in ('nativeInstallationVerified', 'nativeUpgradeVerified', 'profileDataPreserved',
+                     'tutorialMenuVerified', 'payloadBytesAndLinksVerified'):
+            with self.subTest(flag=flag):
+                data = dict(original)
+                data.pop(flag)
+                path.write_text(json.dumps(data))
+                with self.assertRaisesRegex(ValueError, 'Native Mac installer validation is incomplete'):
+                    module.publish(self.source)
+                self.assertEqual(self.calls, [])
 
     def test_modified_binary_is_never_uploaded(self):
         path = self.source / 'Browserland-0.22.1-Windows-Setup.exe'

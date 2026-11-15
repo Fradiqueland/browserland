@@ -30,7 +30,7 @@ def publish(source):
         raise ValueError('Unexpected release context')
     source = source.resolve(strict=True)
     names = [f'Browserland-{version}-{suffix}' for suffix in (
-        'Windows-Setup.exe', 'Windows-Portable.exe', 'mac.dmg', 'Mac-Portable.zip')]
+        'Windows-Setup.exe', 'Windows-Portable.exe', 'mac.dmg', 'Mac-Portable.zip', 'Mac-Universal.pkg')]
     packages = []
     for name in names:
         matches = list(source.rglob(name))
@@ -42,7 +42,8 @@ def publish(source):
         raise ValueError('Missing verification reports')
     proof_names = {path.name for path in reports}
     required = {f'electron-payload-{version}.json', f'ci-windows-verification-{version}.json',
-                f'mac-dmg-{version}.json', f'mac-portable-{version}.json', f'mac-ci-{version}.json'}
+                f'mac-dmg-{version}.json', f'mac-portable-{version}.json', f'mac-ci-{version}.json',
+                f'mac-installer-{version}.json'}
     if not required.issubset(proof_names):
         raise ValueError('Missing required package verification')
     for path in reports:
@@ -59,11 +60,18 @@ def publish(source):
     mac = proof_files[f'mac-ci-{version}.json']
     if mac.get('structuralValidation') is not True or mac.get('commit') != commit:
         raise ValueError('Mac package validation does not match this commit')
+    installer = proof_files[f'mac-installer-{version}.json']
+    if (installer.get('commit') != commit or installer.get('architectures') != ['x64', 'arm64']
+            or any(installer.get(flag) is not True for flag in (
+                'payloadBytesAndLinksVerified', 'nativeInstallationVerified',
+                'nativeUpgradeVerified', 'profileDataPreserved', 'tutorialMenuVerified'))):
+        raise ValueError('Native Mac installer validation is incomplete')
     proof_map = {
         names[0]: (f'electron-installer-{version}.json', 'sha256'),
         names[1]: (f'windows-single-file-{version}.json', 'sha256'),
         names[2]: (f'mac-dmg-{version}.json', 'sha256'),
         names[3]: (f'mac-portable-{version}.json', 'zipSHA256'),
+        names[4]: (f'mac-installer-{version}.json', 'sha256'),
     }
     hashes = {}
     for path in packages:
@@ -90,16 +98,24 @@ def publish(source):
             archive.write(path, path.parent.name + '/' + path.name)
     notes = out / 'release-notes.md'
     notes.write_text(
-        f'Browserland {version} configures the circular blue Windows icons automatically during installation and updates.\n\n'
+        f'Browserland {version} adds Download PDF Tutorial to the sidebar in all eleven interface languages.\n'
+        'Tutorial: https://antoniofradique.net/browserland-pdf-tutorial\n\n'
         'Windows: use Windows-Setup.exe for installation and Desktop/Start menu shortcuts, '
         'or Windows-Portable.exe for portable use. Setup uses a versioned icon for Desktop, Start menu and installed-app entries, '
         'and refreshes existing Browserland taskbar shortcuts. Existing profile data is preserved.\n\n'
-        'Mac: the DMG and Mac-Portable.zip contain both Intel and Apple Silicon runtimes. '
-        'Keep the existing data folder when updating.\n\n'
+        'Mac: use Mac-Universal.pkg for a guided installation into Applications. '
+        'The PKG includes both Intel and Apple Silicon runtimes and stores profiles in '
+        '~/Library/Application Support/Browserland, outside the application. '
+        'PKG updates preserve that workspace. When moving from the portable app, '
+        'close every window, back up its data folder, and copy it to that location before '
+        'first launch; never overwrite an existing workspace. Portable data is not moved automatically. '
+        'The DMG and Mac-Portable.zip remain available; preserve their existing data folder when updating.\n\n'
         'The packages include Electron and Chromium. No separate runtime installation is required.\n\n'
         'Validation: application tests, Windows installer payload verification and isolated '
-        'install/update/uninstall checks, and Mac package/DMG structure and checksum verification. '
-        'Real macOS execution, signing and notarization are not verified by this build.\n\n'
+        'install/update/uninstall checks, Mac package/DMG structure and checksum verification, '
+        'and native PKG installation, reinstallation and tutorial menu checks on a disposable Mac runner. '
+        'The verification receipt identifies the Mac architecture used for execution. '
+        'Developer ID signing and notarization are not included.\n\n'
         f'Source commit: {commit}. Checksums and detailed build receipts are attached.\n', encoding='utf-8')
     assets = [*packages, checksums, verification]
     gh('release', 'create', tag, '--repo', repository, '--target', commit, '--draft',

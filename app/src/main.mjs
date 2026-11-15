@@ -359,6 +359,7 @@ function browserMenu(record){
 const actions={
  appearance:d=>{if(!['modern','classic'].includes(d.appearance))throw Error('Estilo de interface invalido.');store.state.settings.appearance=d.appearance;store.save();broadcast();return state();},
  authorWebsite:async()=>{await shell.openExternal('https://AntonioFradique.net');return {opened:true};},
+ pdfTutorial:async()=>{await shell.openExternal('https://antoniofradique.net/browserland-pdf-tutorial');return {opened:true};},
  authorSocial:async d=>{await shell.openExternal(authorSocialURL(d.id));return {opened:true};},
  language:d=>{if(!validLanguage(d.language))throw Error('Idioma da interface invalido.');store.state.settings.language=normalizeLanguage(d.language);store.save();broadcast();return state();},
  nativePage:async d=>{profileTasks.assertIdle(d.id);const p=store.get(d.id);if(!p.engine||p.engine==='embedded')throw Error('Escolha um motor Chromium completo neste perfil.');if(d.page==='store')await nativeBrowsers.extensionStore(p);else await nativeBrowsers.page(p,d.page);return {opened:true};},

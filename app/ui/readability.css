@@ -1,4 +1,5 @@
 /* Readable desktop typography, without scaling web content or profile identities. */
+#pdf-tutorial{margin-top:8px;border:1px solid var(--line);color:var(--accent)}#pdf-tutorial svg{flex-shrink:0}#pdf-tutorial span{min-width:0;overflow-wrap:anywhere}body.classic #pdf-tutorial{color:#fff}
 :root{--muted:#b0b8cb;--sidebar-width:250px}body{font-size:15px;line-height:1.5}body.light,body.classic.light{--muted:#556174}body.classic aside{background:#1b2940}body.classic .brand-icon{color:#1b2940}
 aside{width:var(--sidebar-width);padding:22px 16px 16px}main{margin-left:var(--sidebar-width);width:calc(100% - var(--sidebar-width));padding:28px 28px 0}html[dir=rtl] main{margin-left:0;margin-right:var(--sidebar-width)}
 .brand{font-size:21px;gap:10px;margin-bottom:22px}.brand small,.workspace-label{display:none}nav{gap:5px}nav button{min-height:46px;padding:11px 12px;gap:12px}nav button span{font-size:17px;line-height:1.4;font-weight:500}nav b{font-size:13px}nav button.active{box-shadow:inset 3px 0 var(--accent);background:#ffffff12}html[dir=rtl] nav button.active{box-shadow:inset -3px 0 var(--accent)}

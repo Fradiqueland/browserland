@@ -4,6 +4,12 @@ Browser profile manager for Windows and macOS, created by Antonio Fradique.
 
 Source repository: [Fradiqueland/browserland](https://github.com/Fradiqueland/browserland).
 
+## Browserland 0.22.3
+
+The sidebar includes **Download PDF Tutorial** in all eleven interface languages, opening [the Browserland tutorial](https://antoniofradique.net/browserland-pdf-tutorial) in the default browser.
+
+The universal Mac `.pkg` installs Browserland in Applications and includes both Intel and Apple Silicon runtimes. Installed profiles are stored in `~/Library/Application Support/Browserland`, outside the app, so subsequent PKG updates preserve them. When moving from a portable version, close every window, back up the complete `data` folder and copy it to that location before first launch. Do not overwrite an existing workspace. The installer leaves portable data untouched.
+
 ## Browserland 0.22.2
 
 Version 0.22.2 configures the circular blue Windows icons automatically on installation and update. Desktop and Start menu shortcuts and the installed-app entry use a versioned icon file, and existing taskbar shortcuts targeting this installation are refreshed without changing other apps or profile data. The automated build publishes packages only after the Windows installer and Mac package checks pass. Downloads appear on [GitHub Releases](https://github.com/Fradiqueland/browserland/releases).

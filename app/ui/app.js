@@ -6,6 +6,7 @@ const $=s=>document.querySelector(s);
 $('#ui-language').replaceChildren(...LANGUAGES.map(({id,name})=>new Option(name,id)));
 const applyLanguage=localizeDocument(document);applyLanguage(DEFAULT_LANGUAGE);
 $('#author-products').onclick=event=>{event.preventDefault();run('authorWebsite');};
+$('#pdf-tutorial').onclick=()=>run('pdfTutorial');
 mountSocialLinks($('#author-socials'),id=>run('authorSocial',{id}));
 $('#ui-language').onchange=()=>run('language',{language:$('#ui-language').value});
 const actionSource=document.querySelector('#profiles .section-head'),profileActions=document.querySelector('#profiles .actions'),headerActions=document.querySelector('header .header-actions');
