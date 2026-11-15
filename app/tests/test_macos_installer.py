@@ -17,6 +17,13 @@ SPEC.loader.exec_module(m)
 
 
 class InstallerBoundaries(unittest.TestCase):
+    def test_source_comparison_allows_only_text_line_endings(self):
+        self.assertTrue(m.source_matches(b'const a=1;\r\n', b'const a=1;\n', 'app.mjs'))
+        self.assertTrue(m.source_matches(b'const a=1;\n', b'const a=1;\r\n', 'app.mjs'))
+        self.assertFalse(m.source_matches(b'const a=2;\r\n', b'const a=1;\n', 'app.mjs'))
+        self.assertFalse(m.source_matches(b'const a=1; \r\n', b'const a=1;\n', 'app.mjs'))
+        self.assertFalse(m.source_matches(b'asset\r\n', b'asset\n', 'app.png'))
+
     def test_installed_workspace_is_outside_application_and_portable_stays_unchanged(self):
         portable = m.unified.launcher_script()
         installed = m.installed_launcher()

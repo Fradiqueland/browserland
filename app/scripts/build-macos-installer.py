@@ -96,6 +96,16 @@ def inventory(app):
     return entries
 
 
+def source_matches(actual, expected, file):
+    if actual == expected:
+        return True
+    # Git on the Windows package runner may check text out as CRLF, while the
+    # native Mac runner uses LF. Only that text transport difference is allowed.
+    if Path(file).suffix not in {'.mjs', '.cjs', '.js', '.json', '.html', '.css'}:
+        return False
+    return actual.replace(b'\r\n', b'\n') == expected.replace(b'\r\n', b'\n')
+
+
 def verify_input(source, receipt, version):
     proof = json.loads(receipt.read_text(encoding='utf-8-sig'))
     if proof.get('ok') is not True or proof.get('sha256') != base.digest(source):
@@ -115,7 +125,7 @@ def verify_input(source, receipt, version):
             base.executable_arch(archive, runtime + '.runtime/chromium/Chromium.app/Contents/MacOS/Chromium', arch)
             for file in unified.source_inventory():
                 name = runtime + 'Browserland.app/Contents/Resources/app/' + file.relative_to(ROOT).as_posix()
-                if archive.read(name) != file.read_bytes():
+                if not source_matches(archive.read(name), file.read_bytes(), file):
                     raise ValueError('Portable source does not match checkout: ' + name)
     return info.get('LSMinimumSystemVersion', '13.0')
 
@@ -252,7 +262,8 @@ def build(source, receipt, output, verify_install=False):
         package_info = ET.parse(expanded / 'Browserland.pkg/PackageInfo').getroot()
         if package_info.get('install-location') != '/Applications' or package_info.get('version') != version:
             raise ValueError('Incorrect package version or install destination')
-        if package_info.find('scripts') is not None:
+        scripts = package_info.find('scripts')
+        if scripts is not None and len(scripts):
             raise ValueError('Unexpected installer scripts')
         if (expanded / 'Distribution').read_bytes().find(b'x86_64,arm64') == -1:
             raise ValueError('Distribution is not universal')

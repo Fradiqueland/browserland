@@ -10,6 +10,8 @@ on:
       - app/scripts/ci-*
       - app/scripts/windows-installer-nsis.nsi
       - app/scripts/build-electron-installer.py
+      - app/scripts/build-macos-installer.py
+      - app/tests/test_macos_installer.py
       - app/scripts/verify-ci-windows.py
       - app/tests/test_ci_publish_release.py
       - .github/workflows/build-release.yml
